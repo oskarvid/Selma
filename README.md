@@ -17,4 +17,4 @@ If you haven't indexed the fasta file with bwa you must do that before you run t
 
 Run the pipeline with `sh scripts/start-pipeline.sh` to run it in the docker container with snakemake, bwa, samtools and gatk installed.
 Or run it with singularity with `snakemake -j --use-singularity`, it will use another docker container that I normally use for my wdl germline pipeline.
-Or run it locally, edit the relevant in the script and make sure all tools are installed already.
+Or run it locally, edit the relevant paths in the script and make sure all tools are installed already.
