@@ -14,7 +14,7 @@ rule all:
 
 rule BwaMem:
 	input:
-		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
 		read1 = "fastq/{sample}.R1.fastq.gz",
 		read2 = "fastq/{sample}.R2.fastq.gz",
 	output:
@@ -26,7 +26,7 @@ rule BwaMem:
 
 rule FastqtoSam:
 	input: 
-		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
 		read1 = "fastq/{sample}.R1.fastq.gz",
 		read2 = "fastq/{sample}.R2.fastq.gz",
 	output:
@@ -47,7 +47,7 @@ rule FastqtoSam:
 
 rule MergeBamAlignment:
 	input:
-		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
 		unmapped = "Outputs/FastqToSam/{sample}_unmapped.bam",
 		mapped = "Outputs/BwaMem/{sample}_mapped.bam"
 	output:
@@ -98,10 +98,10 @@ rule MarkDup:
 rule BaseRecalibrator:
 	input:
 		bam = "Outputs/MarkDuplicates/markedDuplicates.bam",
-		fasta = "/references/Homo_sapiens_assembly38.fasta",
-		dbsnp = "/references/dbsnp_146.hg38.vcf.gz",
-		v1000g = "/references/1000G_phase1.snps.high_confidence.hg38.vcf.gz",
-		mills = "/references/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz",
+		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
+		dbsnp = "/home/oskar/01-workspace/01-data/refdata/hg38/dbsnp_146.hg38.vcf.gz",
+		v1000g = "/home/oskar/01-workspace/01-data/refdata/hg38/1000G_phase1.snps.high_confidence.hg38.vcf.gz",
+		mills = "/home/oskar/01-workspace/01-data/refdata/hg38/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz",
 		contigs = "intervals/contigs/{contigs}.bed",
 	output:
 		grp = "Outputs/BaseRecalibrator/BQSR_{contigs}.grp",
@@ -135,7 +135,7 @@ rule ApplyBQSR:
 	input:
 		bam = "Outputs/MarkDuplicates/markedDuplicates.bam",
 		grp = "Outputs/GatherBQSR/GatheredBQSR.grp",
-		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
 		contigs = "intervals/contigs/{contigs}.bed",
 	output:
 		bam = "Outputs/ApplyBQSR/{contigs}_recalibrated.bam",
@@ -156,7 +156,7 @@ rule ApplyBQSRunmapped:
 	input:
 		bam = "Outputs/MarkDuplicates/markedDuplicates.bam",
 		grp = "Outputs/GatherBQSR/GatheredBQSR.grp",
-		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
 	output:
 		bam = "Outputs/ApplyBQSR/18_recalibrated.bam",
 		tmp = "Outputs/ApplyBQSR/18_tmp"
@@ -188,7 +188,7 @@ rule GatherBamFiles:
 rule HaplotypeCaller:
 	input:
 		bam = "Outputs/GatherBamFiles/GatheredBamFiles.bam",
-		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
 		intervals = "intervals/16-lists/{directory}_of_16/scattered.bed",
 	output:
 		vcf = "Outputs/HaplotypeCaller/{directory}_rawVariants.g.vcf.gz",
@@ -220,7 +220,7 @@ rule GatherVCFs:
 rule GenotypeGVCFs:
 	input:
 		vcf = "Outputs/GatherVCFs/GatheredVCFs.g.vcf.gz",
-		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
 		intervals = "intervals/contigs/{contigs}.bed",
 	output:
 		vcf = "Outputs/GenotypeGVCFs/{contigs}_genotypes.g.vcf.gz",
@@ -250,11 +250,11 @@ rule GatherVCFs2:
 rule VariantRecalibratorSNP:
 	input:
 		vcf = "Outputs/GatherVCFs2/GatheredVCFs2.g.vcf.gz",
-		fasta = "/references/Homo_sapiens_assembly38.fasta",
-		dbsnp = "/references/dbsnp_146.hg38.vcf.gz",
-		v1000g = "/references/1000G_phase1.snps.high_confidence.hg38.vcf.gz",
-		omni = "/references/1000G_omni2.5.hg38.vcf.gz",
-		hapmap = "/references/hapmap_3.3.hg38.vcf.gz"
+		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
+		dbsnp = "/home/oskar/01-workspace/01-data/refdata/hg38/dbsnp_146.hg38.vcf.gz",
+		v1000g = "/home/oskar/01-workspace/01-data/refdata/hg38/1000G_phase1.snps.high_confidence.hg38.vcf.gz",
+		omni = "/home/oskar/01-workspace/01-data/refdata/hg38/1000G_omni2.5.hg38.vcf.gz",
+		hapmap = "/home/oskar/01-workspace/01-data/refdata/hg38/hapmap_3.3.hg38.vcf.gz"
 	output:
 		recal = "Outputs/VariantRecalibratorSNP/SnpVQSR.recal",
 		tranches = "Outputs/VariantRecalibratorSNP/SnpVQSR.tranches",
@@ -280,9 +280,9 @@ rule VariantRecalibratorSNP:
 rule VariantRecalibratorINDEL:
 	input:
 		vcf = "Outputs/GatherVCFs2/GatheredVCFs2.g.vcf.gz",
-		fasta = "/references/Homo_sapiens_assembly38.fasta",
-		dbsnp = "/references/dbsnp_146.hg38.vcf.gz",
-		mills = "/references/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz",
+		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
+		dbsnp = "/home/oskar/01-workspace/01-data/refdata/hg38/dbsnp_146.hg38.vcf.gz",
+		mills = "/home/oskar/01-workspace/01-data/refdata/hg38/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz",
 	output:
 		recal = "Outputs/VariantRecalibratorINDEL/IndelVQSR.recal",
 		tranches = "Outputs/VariantRecalibratorINDEL/IndelVQSR.tranches",
@@ -307,7 +307,7 @@ rule VariantRecalibratorINDEL:
 rule ApplyVqsrSnp:
 	input:
 		vcf = "Outputs/GatherVCFs2/GatheredVCFs2.g.vcf.gz",
-		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
 		recal = "Outputs/VariantRecalibratorSNP/SnpVQSR.recal",
 		tranches = "Outputs/VariantRecalibratorSNP/SnpVQSR.tranches"
 	output:
@@ -328,7 +328,7 @@ rule ApplyVqsrSnp:
 rule ApplyVqsrIndel:
 	input:
 		vcf = "Outputs/GatherVCFs2/GatheredVCFs2.g.vcf.gz",
-		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
 		recal = "Outputs/VariantRecalibratorINDEL/IndelVQSR.recal",
 		tranches = "Outputs/VariantRecalibratorINDEL/IndelVQSR.tranches"
 	output:
