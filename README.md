@@ -1,20 +1,42 @@
-# snakemake_germline
-Germline Variant Calling Pipeline built in Snakemake
-
-# This repository is still in progress and can not be regarded as a finished pipeline, although it should run 100% with a proper set of input files.
+# Germline Variant Calling Pipeline built in Snakemake  
 
 The Snakefile is adapted to run inside a docker container that I prepared for the pipeline. Either download it manually with `docker pull oskarv/snakemake-germline-tools`
-or run the start script and it'll get downloaded automatically if it isn't already downloaded. 
+or run the start script and it'll get downloaded automatically if it isn't already downloaded. Alternatively build it manually with the Dockerfile.  
 
 # Instructions  
 Edit `scripts/start-pipeline.sh` and change the file path for `REFERENCES` to the filepath where you keep your reference files. The default reference files 
-are the hg38 reference files from the Broad Institute, they host them at their public ftp server here: 
+are the hg38 reference files from the Broad Institute, they host them at their public ftp server here:  
 ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle  
 There is no password. You can automatically download the hg38 folder with this command:  
-`wget -m ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38`
+`wget -m ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38`  
 
 If you haven't indexed the fasta file with bwa you must do that before you run the pipeline.  
 
-Run the pipeline with `sh scripts/start-pipeline.sh` to run it in the docker container with snakemake, bwa, samtools and gatk installed.
-Or run it with singularity with `snakemake -j --use-singularity`, it will use another docker container that I normally use for my wdl germline pipeline.
-Or run it locally, edit the relevant paths in the script and make sure all tools are installed already.
+Run the pipeline with `sh scripts/start-pipeline.sh` to run it in the oskarv/snakemake-germline-tools docker container with snakemake, bwa, samtools and 
+gatk installed.  
+You can also run it locally with `snakemake -j`, just edit the relevant paths in the script and make sure all tools are installed locally.  
+Singularity is not supported due to the use of "run:", the Singularity directive is only allowed with shell, script or wrapper directives.
+
+## Hardware requirements and optimizations  
+At the current state the pipeline is highly optimized for use on a single server with 16 thread, 64GB RAM and at least 500GB storage for fastq files
+with ~30x coverage. But it will run on any laptop with 8GB RAM, but preferrably 16GB RAM, the storage requirements apart from the reference files is negligible.  
+The run time on my current test machine has been between 16 hours and 14 minutes to 16 hours and 25 minutes.  
+<rant> Compared with my WDL 
+based pipeline for germline variant calling, this is 5-6 hours faster. The reason for this speed increase is due to parallelization options that aren't
+available in WDL. In WDL you are not able to manually limit a scatter/gather process to loop over each input file for one tool, this causes an inefficiency
+for bwa since all input files must run at the same time, as well as all FastqToSam processes, meaning that you must either choose between not overloading 
+the system and not parallelize bwa, which would mean that you run e.g 8 input pairs for bwa and FastqToSam until FastqToSam is finished, which takes ~25 
+minutes, and thus temporarily creating a system load of 16, but then only use 8 threads once FastqToSam is finished, or temporarily overload the system 
+and parallelize bwa with at least 3 threads, since I expect using 2 threads won't actually parallelize anything since one thread is usually used to control
+the rest of the threads, meaning you would use one thread to control one thread if only two threads are used to parallelize bwa. Thus using 3 threads would
+create a system load of 3x8 + 8 until FastqToSam is finished, and then a consisten system load of  3x8 until bwa is finished. On a 16 thread machine this 
+is suboptimal, a better solution, which Snakemake enables, is to loop over the input files with bwa, allowing you to use 16 threads per pair which means 
+that each pair takes roughly 50 minutes to finish, and then run 8 parallel processes for FastqToSam, which takes roughly 25 minutes. That way you don't 
+overload the system and gain in speed. After correspondence with The Broad Institute, the organization that develops WDL, their stance is that WDL should
+ rather be used on e.g Google cloud, and that the shards should be distributed to a compute node each. This is not always possible, hence this feature is
+ sorely needed in WDL since the lack of it causes unecessary inefficiens. </rant>
+
+## Planned features and testing  
+I am still learning Snakemake, and so far I am planning to enable the use of a config file to define input paths and variables.  
+Testing the pipeline and limiting it to use 16 threads and 32GB RAM is also of interest to see how the execution time is affected. If the execution time 
+is only slightly lenghtened, it might make sense to set the default setting to maximally use ~32GB per scatter/gather process, instead of the current ~56GB.

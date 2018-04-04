@@ -1,35 +1,38 @@
+#SAMPLES = ['L001','L002','L003','L004','L005','L006','L007','L008']
 SAMPLES = ['Sample1']
-INTERVALS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+INTERVALS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
+CONTIGS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]
+GATHERCONTIGS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
 
 
 rule all:
 	input:
+		expand("intervals/16-lists/{directory}_of_16/scattered.bed", directory=INTERVALS),
+		expand("intervals/contigs/{contigs}.bed", contigs=CONTIGS),
 		"Outputs/ApplyVqsrSnp/SnpApplyVQSR.g.vcf.gz",
 		"Outputs/ApplyVqsrIndel/IndelApplyVQSR.g.vcf.gz",
 
 rule BwaMem:
 	input:
 		fasta = "/references/Homo_sapiens_assembly38.fasta",
-		read1 = expand("fastq/{sample}.R1.fastq.gz", sample=SAMPLES),
-		read2 = expand("fastq/{sample}.R2.fastq.gz", sample=SAMPLES),
+		read1 = "fastq/{sample}.R1.fastq.gz",
+		read2 = "fastq/{sample}.R2.fastq.gz",
 	output:
 		"Outputs/BwaMem/{sample}_mapped.bam",
-	threads: 15
-	singularity:
-		"docker://oskarv/wdl"
+	priority: 3
+	threads: 16
 	shell:
 		"bwa mem -M -t 16 {input.fasta} {input.read1} {input.read2} | samtools view -Sb - > {output}"
 
 rule FastqtoSam:
 	input: 
 		fasta = "/references/Homo_sapiens_assembly38.fasta",
-		read1 = expand("fastq/{sample}.R1.fastq.gz", sample=SAMPLES),
-		read2 = expand("fastq/{sample}.R2.fastq.gz", sample=SAMPLES),
+		read1 = "fastq/{sample}.R1.fastq.gz",
+		read2 = "fastq/{sample}.R2.fastq.gz",
 	output:
-		bam = "Outputs/FastqToSam/{samples}_unmapped.bam",
-		tmp = "Outputs/FastqToSam/{samples}_tmp"
-	singularity:
-		"docker://oskarv/wdl"
+		bam = "Outputs/FastqToSam/{sample}_unmapped.bam",
+		tmp = "Outputs/FastqToSam/{sample}_tmp",
+	priority: 2
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		FastqToSam \
@@ -40,7 +43,6 @@ rule FastqtoSam:
 		--READ_GROUP_NAME RGname \
 		--LIBRARY_NAME Lib-1 \
 		--PLATFORM ILLUMINA \
-		--SORT_ORDER coordinate \
 		--TMP_DIR {output.tmp}"
 
 rule MergeBamAlignment:
@@ -50,9 +52,8 @@ rule MergeBamAlignment:
 		mapped = "Outputs/BwaMem/{sample}_mapped.bam"
 	output:
 		bam = "Outputs/MergeBamAlignment/{sample}_merged.bam",
-		tmp = "Outputs/MergeBamAlignment/{sample}_tmp"
-	singularity:
-		"docker://oskarv/wdl"
+		tmp = "Outputs/MergeBamAlignment/{sample}_tmp",
+	priority: 1
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		MergeBamAlignment \
@@ -82,9 +83,6 @@ rule MarkDup:
 		expand("Outputs/MergeBamAlignment/{sample}_merged.bam", sample=SAMPLES)
 	output:
 		"Outputs/MarkDuplicates/markedDuplicates.bam",
-		"Outputs/MarkDuplicates/tmp",
-	singularity:
-		"docker://oskarv/wdl"
 	run:
 		INPUTS = " ".join(["--INPUT {}".format(x) for x in input])
 		shell("gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
@@ -104,30 +102,28 @@ rule BaseRecalibrator:
 		dbsnp = "/references/dbsnp_146.hg38.vcf.gz",
 		v1000g = "/references/1000G_phase1.snps.high_confidence.hg38.vcf.gz",
 		mills = "/references/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz",
-		intervals = "18-lists/{directory}_of_18/scattered.bed",
+		contigs = "intervals/contigs/{contigs}.bed",
 	output:
-		grp = "Outputs/BaseRecalibrator/BQSR_{directory}.grp",
-		tmp = "Outputs/BaseRecalibrator/{directory}_tmp"
+		grp = "Outputs/BaseRecalibrator/BQSR_{contigs}.grp",
+		tmp = "Outputs/BaseRecalibrator/{contigs}_tmp",
 	threads: 2
-	singularity:
-		"docker://oskarv/wdl"
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		BaseRecalibrator \
 		--reference {input.fasta} \
 		--input {input.bam} \
-		-O {output} \
+		-O {output.grp} \
 		--known-sites {input.dbsnp} \
 		--known-sites {input.v1000g} \
 		--known-sites {input.mills} \
-		--intervals {input.intervals} \
+		--intervals {input.contigs} \
 		--TMP_DIR {output.tmp}"
 
 rule GatherBQSR:
 	input:
-		expand("Outputs/BaseRecalibrator/BQSR_{directory}.grp", directory=INTERVALS),
+		expand("Outputs/BaseRecalibrator/BQSR_{directory}.grp", directory=CONTIGS),
 	output:
-		"Outputs/GatherBQSR/GatheredBQSR.grp",
+		"Outputs/GatherBQSR/GatheredBQSR.grp"
 	run:
 		INPUTS = " ".join(["--input {}".format(x) for x in input])
 		shell("gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
@@ -140,13 +136,11 @@ rule ApplyBQSR:
 		bam = "Outputs/MarkDuplicates/markedDuplicates.bam",
 		grp = "Outputs/GatherBQSR/GatheredBQSR.grp",
 		fasta = "/references/Homo_sapiens_assembly38.fasta",
-		intervals = "18-lists/{directory}_of_18/scattered.bed",
+		contigs = "intervals/contigs/{contigs}.bed",
 	output:
-		bam = "Outputs/ApplyBQSR/{directory}_recalibrated.bam",
-		tmp = "Outputs/ApplyBQSR/{directory}_tmp"
+		bam = "Outputs/ApplyBQSR/{contigs}_recalibrated.bam",
+		tmp = "Outputs/ApplyBQSR/{contigs}_tmp"
 	threads: 2
-	singularity:
-		"docker://oskarv/wdl"
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		ApplyBQSR \
@@ -155,14 +149,34 @@ rule ApplyBQSR:
 		-O {output.bam} \
 		--create-output-bam-index true \
 		-bqsr {input.grp} \
-		--intervals {input.intervals} \
+		--intervals {input.contigs} \
+		--TMP_DIR {output.tmp}"
+
+rule ApplyBQSRunmapped:
+	input:
+		bam = "Outputs/MarkDuplicates/markedDuplicates.bam",
+		grp = "Outputs/GatherBQSR/GatheredBQSR.grp",
+		fasta = "/references/Homo_sapiens_assembly38.fasta",
+	output:
+		bam = "Outputs/ApplyBQSR/18_recalibrated.bam",
+		tmp = "Outputs/ApplyBQSR/18_tmp"
+	priority: 1
+	shell:
+		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
+		ApplyBQSR \
+		--reference {input.fasta} \
+		--input {input.bam} \
+		-O {output.bam} \
+		--create-output-bam-index true \
+		-bqsr {input.grp} \
+		--intervals unmapped \
 		--TMP_DIR {output.tmp}"
 
 rule GatherBamFiles:
 	input:
-		expand("Outputs/ApplyBQSR/{directory}_recalibrated.bam", directory=INTERVALS),
+		expand("Outputs/ApplyBQSR/{directory}_recalibrated.bam", directory=GATHERCONTIGS),
 	output:
-		"Outputs/GatherBamFiles/GatheredBamFiles.bam",
+		"Outputs/GatherBamFiles/GatheredBamFiles.bam"
 	run:
 		INPUTS = " ".join(["--INPUT {}".format(x) for x in input])
 		shell("gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
@@ -175,15 +189,13 @@ rule HaplotypeCaller:
 	input:
 		bam = "Outputs/GatherBamFiles/GatheredBamFiles.bam",
 		fasta = "/references/Homo_sapiens_assembly38.fasta",
-		intervals = "18-lists/{directory}_of_18/scattered.bed",
+		intervals = "intervals/16-lists/{directory}_of_16/scattered.bed",
 	output:
 		vcf = "Outputs/HaplotypeCaller/{directory}_rawVariants.g.vcf.gz",
 		tmp = "Outputs/HaplotypeCaller/{directory}_tmp"
-	threads: 2
-	singularity:
-		"docker://oskarv/wdl"
+	threads: 1
 	shell:
-		"gatk --java-options '-Xmx8G -Djava.io.tempdir=`pwd`/tmp' \
+		"gatk --java-options '-Xmx3500M -Djava.io.tempdir=`pwd`/tmp' \
 		HaplotypeCaller \
 		-R {input.fasta} \
 		-O {output.vcf} \
@@ -196,35 +208,48 @@ rule GatherVCFs:
 	input:
 		expand("Outputs/HaplotypeCaller/{directory}_rawVariants.g.vcf.gz", directory=INTERVALS)
 	output:
-		"Outputs/GatherVCFs/GatheredVCFs.g.vcf",
+		"Outputs/GatherVCFs/GatheredVCFs.g.vcf.gz",
 	run:
 		INPUTS = " ".join(["--INPUT {}".format(x) for x in input])
 		shell("gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		MergeVcfs \
 		{INPUTS} \
-		-O Outputs/GatherVCFs/GatheredVCFs.g.vcf \
-		--CREATE_INDEX false".format(INPUTS=INPUTS))
+		-O Outputs/GatherVCFs/GatheredVCFs.g.vcf.gz \
+		--CREATE_INDEX true".format(INPUTS=INPUTS))
 
 rule GenotypeGVCFs:
 	input:
-		vcf = "Outputs/GatherVCFs/GatheredVCFs.g.vcf",
+		vcf = "Outputs/GatherVCFs/GatheredVCFs.g.vcf.gz",
 		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		intervals = "intervals/contigs/{contigs}.bed",
 	output:
-		vcf = "Outputs/GenotypeGVCFs/genotypes.g.vcf.gz",
-		tmp = "Outputs/GenotypeGVCFs/tmp"
-	singularity:
-		"docker://oskarv/wdl"
+		vcf = "Outputs/GenotypeGVCFs/{contigs}_genotypes.g.vcf.gz",
+		tmp = "Outputs/GenotypeGVCFs/{contigs}_tmp",
 	shell:
-		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
+		"gatk --java-options '-Xmx3500M -Djava.io.tempdir=`pwd`/tmp' \
 		GenotypeGVCFs \
 		-R {input.fasta} \
 		-O {output.vcf} \
 		-V {input.vcf} \
+		-L {input.intervals} \
 		--TMP_DIR {output.tmp}"
+
+rule GatherVCFs2:
+	input:
+		expand("Outputs/GenotypeGVCFs/{contigs}_genotypes.g.vcf.gz", contigs=CONTIGS)
+	output:
+		"Outputs/GatherVCFs2/GatheredVCFs2.g.vcf.gz",
+	run:
+		INPUTS = " ".join(["--INPUT {}".format(x) for x in input])
+		shell("gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
+		MergeVcfs \
+		{INPUTS} \
+		-O Outputs/GatherVCFs2/GatheredVCFs2.g.vcf.gz \
+		--CREATE_INDEX true".format(INPUTS=INPUTS))
 
 rule VariantRecalibratorSNP:
 	input:
-		vcf = "Outputs/GenotypeGVCFs/genotypes.g.vcf.gz",
+		vcf = "Outputs/GatherVCFs2/GatheredVCFs2.g.vcf.gz",
 		fasta = "/references/Homo_sapiens_assembly38.fasta",
 		dbsnp = "/references/dbsnp_146.hg38.vcf.gz",
 		v1000g = "/references/1000G_phase1.snps.high_confidence.hg38.vcf.gz",
@@ -233,9 +258,7 @@ rule VariantRecalibratorSNP:
 	output:
 		recal = "Outputs/VariantRecalibratorSNP/SnpVQSR.recal",
 		tranches = "Outputs/VariantRecalibratorSNP/SnpVQSR.tranches",
-		tmp = "Outputs/VariantRecalibratorSNP/tmp"
-	singularity:
-		"docker://oskarv/wdl"
+		tmp = "Outputs/VariantRecalibratorSNP/tmp",
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		VariantRecalibrator \
@@ -256,7 +279,7 @@ rule VariantRecalibratorSNP:
 
 rule VariantRecalibratorINDEL:
 	input:
-		vcf = "Outputs/GenotypeGVCFs/genotypes.g.vcf.gz",
+		vcf = "Outputs/GatherVCFs2/GatheredVCFs2.g.vcf.gz",
 		fasta = "/references/Homo_sapiens_assembly38.fasta",
 		dbsnp = "/references/dbsnp_146.hg38.vcf.gz",
 		mills = "/references/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz",
@@ -264,8 +287,6 @@ rule VariantRecalibratorINDEL:
 		recal = "Outputs/VariantRecalibratorINDEL/IndelVQSR.recal",
 		tranches = "Outputs/VariantRecalibratorINDEL/IndelVQSR.tranches",
 		tmp = "Outputs/VariantRecalibratorINDEL/tmp"
-	singularity:
-		"docker://oskarv/wdl"
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		VariantRecalibrator \
@@ -280,19 +301,18 @@ rule VariantRecalibratorINDEL:
 		-tranche 90.0 \
 		--tranches-file {output.tranches} \
 		--output {output.recal} \
-		--TMP_DIR {output.tmp}"
+		--TMP_DIR {output.tmp} \
+		--max-gaussians 4"
 
 rule ApplyVqsrSnp:
 	input:
-		vcf = "Outputs/GenotypeGVCFs/genotypes.g.vcf.gz",
+		vcf = "Outputs/GatherVCFs2/GatheredVCFs2.g.vcf.gz",
 		fasta = "/references/Homo_sapiens_assembly38.fasta",
 		recal = "Outputs/VariantRecalibratorSNP/SnpVQSR.recal",
 		tranches = "Outputs/VariantRecalibratorSNP/SnpVQSR.tranches"
 	output:
 		vcf = "Outputs/ApplyVqsrSnp/SnpApplyVQSR.g.vcf.gz",
 		tmp = "Outputs/ApplyVqsrSnp/tmp",
-	singularity:
-		"docker://oskarv/wdl"
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		ApplyVQSR \
@@ -302,20 +322,18 @@ rule ApplyVqsrSnp:
 		-ts-filter-level 99.6 \
 		-tranches-file {input.tranches} \
 		-recal-file {input.recal} \
-		-O {output} \
+		-O {output.vcf} \
 		--TMP_DIR {output.tmp}"
 
 rule ApplyVqsrIndel:
 	input:
-		vcf = "Outputs/GenotypeGVCFs/genotypes.g.vcf.gz",
+		vcf = "Outputs/GatherVCFs2/GatheredVCFs2.g.vcf.gz",
 		fasta = "/references/Homo_sapiens_assembly38.fasta",
 		recal = "Outputs/VariantRecalibratorINDEL/IndelVQSR.recal",
 		tranches = "Outputs/VariantRecalibratorINDEL/IndelVQSR.tranches"
 	output:
 		vcf = "Outputs/ApplyVqsrIndel/IndelApplyVQSR.g.vcf.gz",
 		tmp = "Outputs/ApplyVqsrIndel/tmp",
-	singularity:
-		"docker://oskarv/wdl"
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		ApplyVQSR \
@@ -325,5 +343,5 @@ rule ApplyVqsrIndel:
 		-ts-filter-level 95.0 \
 		-tranches-file {input.tranches} \
 		-recal-file {input.recal} \
-		-O {output} \
+		-O {output.vcf} \
 		--TMP_DIR {output.tmp}"
