@@ -21,7 +21,7 @@ Singularity is not supported due to the use of "run:", the Singularity directive
 At the current state the pipeline is highly optimized for use on a single server with 16 thread, 64GB RAM and at least 500GB storage for fastq files
 with ~30x coverage. But it will run on any laptop with 8GB RAM, but preferrably 16GB RAM, the storage requirements apart from the reference files is negligible.  
 The run time on my current test machine has been between 16 hours and 14 minutes to 16 hours and 25 minutes.  
-<rant> Compared with my WDL 
+`<rant>` Compared with my WDL 
 based pipeline for germline variant calling, this is 5-6 hours faster. The reason for this speed increase is due to parallelization options that aren't
 available in WDL. In WDL you are not able to manually limit a scatter/gather process to loop over each input file for one tool, this causes an inefficiency
 for bwa since all input files must run at the same time, as well as all FastqToSam processes, meaning that you must either choose between not overloading 
@@ -34,7 +34,7 @@ is suboptimal, a better solution, which Snakemake enables, is to loop over the i
 that each pair takes roughly 50 minutes to finish, and then run 8 parallel processes for FastqToSam, which takes roughly 25 minutes. That way you don't 
 overload the system and gain in speed. After correspondence with The Broad Institute, the organization that develops WDL, their stance is that WDL should
  rather be used on e.g Google cloud, and that the shards should be distributed to a compute node each. This is not always possible, hence this feature is
- sorely needed in WDL since the lack of it causes unecessary inefficiens. </rant>
+ sorely needed in WDL since the lack of it causes unecessary inefficiens. `</rant>`
 
 ## Planned features and testing  
 I am still learning Snakemake, and so far I am planning to enable the use of a config file to define input paths and variables.  
