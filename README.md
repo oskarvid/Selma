@@ -19,8 +19,8 @@ Singularity is not supported due to the use of "run:", the Singularity directive
 
 ## Hardware requirements and optimizations  
 At the current state the pipeline is highly optimized for use on a single server with 16 thread, 64GB RAM and at least 500GB storage for fastq files
-with ~30x coverage. But it will run on any laptop with 8GB RAM, but preferrably 16GB RAM, the storage requirements apart from the reference files is negligible.  
-The run time on my current test machine has been between 16 hours and 14 minutes to 16 hours and 25 minutes.  
+with ~30x coverage. But when using the test files it will run on any laptop with 8GB RAM, but preferrably 16GB RAM, the storage requirements apart from the reference files is negligible.  
+The run time on my current test machine has been between 16 hours and 14 minutes to 16 hours and 25 minutes with 8 fastq.gz file pairs totalling ~51GB/30x converage.  
 
 `<rant>` Compared with my WDL 
 based pipeline for germline variant calling, this is 5-6 hours faster. The reason for this speed increase is due to parallelization options that aren't
