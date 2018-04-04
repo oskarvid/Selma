@@ -3,6 +3,8 @@
 The Snakefile is adapted to run inside a docker container that I prepared for the pipeline. Either download it manually with `docker pull oskarv/snakemake-germline-tools`
 or run the start script and it'll get downloaded automatically if it isn't already downloaded. Alternatively build it manually with the Dockerfile.  
 
+![Graphical visualization of the pipeline steps](https://github.com/oskarvid/snakemake_germline/dag.png)
+
 # Instructions  
 Edit `scripts/start-pipeline.sh` and change the file path for `REFERENCES` to the filepath where you keep your reference files. The default reference files 
 are the hg38 reference files from the Broad Institute, they host them at their public ftp server here:  
