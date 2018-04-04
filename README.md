@@ -18,8 +18,8 @@ You can also run it locally with `snakemake -j`, just edit the relevant paths in
 Singularity is not supported due to the use of "run:", the Singularity directive is only allowed with shell, script or wrapper directives.
 
 ## Hardware requirements and optimizations  
-At the current state the pipeline is highly optimized for use on a single server with 16 thread, 64GB RAM and at least 500GB storage for fastq files
-with ~30x coverage. But when using the test files it will run on any laptop with 8GB RAM, but preferrably 16GB RAM, the storage requirements apart from the reference files is negligible.  
+At the current state the pipeline is highly optimized for use on a single server with 16 thread, 64GB RAM and at least 500GB storage for 8 fastq.gz files totalling 51GB
+with ~30x coverage. But when using the test files in the fastq folder it should run on any laptop using 4 threads and 8GB RAM, but preferrably 16GB RAM, the storage requirements apart from the reference files is negligible.  
 The run time on my current test machine has been between 16 hours and 14 minutes to 16 hours and 25 minutes with 8 fastq.gz file pairs totalling ~51GB/30x converage.  
 
 `<rant>` Compared with my WDL 
@@ -32,7 +32,7 @@ and parallelize bwa with at least 3 threads, since I expect using 2 threads won'
 the rest of the threads, meaning you would use one thread to control one thread if only two threads are used to parallelize bwa.  
 
 Thus using 3 threads would
-create a system load of 3x8 + 8 until FastqToSam is finished, and then a consisten system load of  3x8 until bwa is finished. On a 16 thread machine this 
+create a system load of 3x8 + 8 until FastqToSam is finished, and then a consistent system load of 3x8 until bwa is finished. On a 16 thread machine this 
 is suboptimal, a better solution, which Snakemake enables, is to loop over the input files with bwa, allowing you to use 16 threads per pair which means 
 that each pair takes roughly 50 minutes to finish, and then run 8 parallel processes for FastqToSam, which takes roughly 25 minutes. That way you don't 
 overload the system and gain in speed.  
