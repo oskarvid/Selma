@@ -34,7 +34,8 @@ is suboptimal, a better solution, which Snakemake enables, is to loop over the i
 that each pair takes roughly 50 minutes to finish, and then run 8 parallel processes for FastqToSam, which takes roughly 25 minutes. That way you don't 
 overload the system and gain in speed. After correspondence with The Broad Institute, the organization that develops WDL, their stance is that WDL should
  rather be used on e.g Google cloud, and that the shards should be distributed to a compute node each. This is not always possible, hence this feature is
- sorely needed in WDL since the lack of it causes unecessary inefficiens. `</rant>`
+ sorely needed in WDL since the lack of it causes unecessary inefficiens. To be fair there are optimizations in this pipeline that could be implemented
+in my current WDL germline pipeline that should decrease the execution time by at least ~70 minutes. `</rant>`
 
 ## Planned features and testing  
 I am still learning Snakemake, and so far I am planning to enable the use of a config file to define input paths and variables.  
