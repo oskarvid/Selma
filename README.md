@@ -20,9 +20,17 @@ You can also run it locally with `snakemake -j`, just edit the relevant paths in
 Singularity is not supported due to the use of "run:", the Singularity directive is only allowed with shell, script or wrapper directives.
 
 ## Hardware requirements and optimizations  
-At the current state the pipeline is highly optimized for use on a single server with 16 thread, 64GB RAM and at least 500GB storage for 8 fastq.gz files totalling 51GB
-with ~30x coverage. But when using the test files in the fastq folder it should run on any laptop using 2 threads and 8GB RAM, but preferrably 4 threads and 16GB RAM, the storage requirements apart from the reference files is negligible.  
-The run time on my current test machine has been between 16 hours and 14 minutes to 16 hours and 25 minutes with 8 fastq.gz file pairs totalling ~51GB/30x converage.  
+At the current state the pipeline is highly optimized for use on a single server with 16 thread, 64GB RAM and at least 500GB storage assuming that there are 8 
+fastq.gz files totalling 51GB with ~30x coverage. But when using the test files 
+in the fastq folder it should run on any laptop using 2 threads and 8GB RAM, but 
+preferrably 4 threads and 16GB RAM, the storage requirements apart from the 
+reference files is negligible.  
+The run time on my current test machine that has 16 threads and 64 GB RAM has 
+been between 16 hours and 14 minutes to 16 hours and 25 minutes with 8 fastq.gz 
+file pairs totalling ~51GB/30x coverage.  
+The execution time on a server with 16 threads and 16 GB RAM is roughly 18 hours 
+and 30 minutes if each scatter gather tool is given 2GB RAM each and using the 
+same input files as above.  
 
 `<rant>` Compared with my WDL 
 based pipeline for germline variant calling, this is 5-6 hours faster. The reason for this speed increase is due to parallelization options that aren't
@@ -46,5 +54,4 @@ in my current WDL germline pipeline that should decrease the execution time by a
 
 ## Planned features and testing  
 I am still learning Snakemake, and so far I am planning to enable the use of a config file to define input paths and variables.  
-Testing the pipeline and limiting it to use 16 threads and 32GB RAM is also of interest to see how the execution time is affected. If the execution time 
-is only slightly lenghtened, it might make sense to set the default setting to maximally use ~32GB per scatter/gather process, instead of the current ~56GB.
+
