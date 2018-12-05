@@ -1,32 +1,32 @@
 #SAMPLES = ['L001','L002','L003','L004','L005','L006','L007','L008']
 SAMPLES = ['Sample1']
 INTERVALS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
-CONTIGS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]
-GATHERCONTIGS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+CONTIGS = [1,2,3,4,5,6,7,8,9,10,11,12,13]
+GATHERCONTIGS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14]
 
 
 rule all:
 	input:
 		expand("intervals/16-lists/{directory}_of_16/scattered.bed", directory=INTERVALS),
-		expand("intervals/contigs/{contigs}.bed", contigs=CONTIGS),
+		expand("intervals/bed-contigs/{contigs}_of_13/scattered.bed", contigs=CONTIGS),
 		"Outputs/ApplyVqsrSnp/SnpApplyVQSR.g.vcf.gz",
 		"Outputs/ApplyVqsrIndel/IndelApplyVQSR.g.vcf.gz",
 
 rule BwaMem:
 	input:
-		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
+		fasta = "/references/Homo_sapiens_assembly38.fasta",
 		read1 = "fastq/{sample}.R1.fastq.gz",
 		read2 = "fastq/{sample}.R2.fastq.gz",
 	output:
 		"Outputs/BwaMem/{sample}_mapped.bam",
 	priority: 3
-	threads: 16
+	threads: 12
 	shell:
-		"bwa mem -M -t 16 {input.fasta} {input.read1} {input.read2} | samtools view -Sb - > {output}"
+		"bwa mem -M -t 12 {input.fasta} {input.read1} {input.read2} | samtools view -Sb - > {output}"
 
 rule FastqtoSam:
 	input: 
-		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
+		fasta = "/references/Homo_sapiens_assembly38.fasta",
 		read1 = "fastq/{sample}.R1.fastq.gz",
 		read2 = "fastq/{sample}.R2.fastq.gz",
 	output:
@@ -47,7 +47,7 @@ rule FastqtoSam:
 
 rule MergeBamAlignment:
 	input:
-		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
+		fasta = "/references/Homo_sapiens_assembly38.fasta",
 		unmapped = "Outputs/FastqToSam/{sample}_unmapped.bam",
 		mapped = "Outputs/BwaMem/{sample}_mapped.bam"
 	output:
@@ -98,15 +98,14 @@ rule MarkDup:
 rule BaseRecalibrator:
 	input:
 		bam = "Outputs/MarkDuplicates/markedDuplicates.bam",
-		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
-		dbsnp = "/home/oskar/01-workspace/01-data/refdata/hg38/dbsnp_146.hg38.vcf.gz",
-		v1000g = "/home/oskar/01-workspace/01-data/refdata/hg38/1000G_phase1.snps.high_confidence.hg38.vcf.gz",
-		mills = "/home/oskar/01-workspace/01-data/refdata/hg38/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz",
-		contigs = "intervals/contigs/{contigs}.bed",
+		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		dbsnp = "/references/dbsnp_146.hg38.vcf.gz",
+		v1000g = "/references/1000G_phase1.snps.high_confidence.hg38.vcf.gz",
+		mills = "/references/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz",
+		contigs = "intervals/bed-contigs/{contigs}_of_13/scattered.bed",
 	output:
 		grp = "Outputs/BaseRecalibrator/BQSR_{contigs}.grp",
-		tmp = "Outputs/BaseRecalibrator/{contigs}_tmp",
-	threads: 2
+#	threads: 2
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		BaseRecalibrator \
@@ -117,7 +116,7 @@ rule BaseRecalibrator:
 		--known-sites {input.v1000g} \
 		--known-sites {input.mills} \
 		--intervals {input.contigs} \
-		--TMP_DIR {output.tmp}"
+		--tmp-dir Outputs/BaseRecalibrator/"
 
 rule GatherBQSR:
 	input:
@@ -135,12 +134,11 @@ rule ApplyBQSR:
 	input:
 		bam = "Outputs/MarkDuplicates/markedDuplicates.bam",
 		grp = "Outputs/GatherBQSR/GatheredBQSR.grp",
-		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
-		contigs = "intervals/contigs/{contigs}.bed",
+		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		contigs = "intervals/bed-contigs/{contigs}_of_13/scattered.bed",
 	output:
 		bam = "Outputs/ApplyBQSR/{contigs}_recalibrated.bam",
-		tmp = "Outputs/ApplyBQSR/{contigs}_tmp"
-	threads: 2
+#	threads: 2
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		ApplyBQSR \
@@ -150,16 +148,15 @@ rule ApplyBQSR:
 		--create-output-bam-index true \
 		-bqsr {input.grp} \
 		--intervals {input.contigs} \
-		--TMP_DIR {output.tmp}"
+		--tmp-dir Outputs/ApplyBQSR/"
 
 rule ApplyBQSRunmapped:
 	input:
 		bam = "Outputs/MarkDuplicates/markedDuplicates.bam",
 		grp = "Outputs/GatherBQSR/GatheredBQSR.grp",
-		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
+		fasta = "/references/Homo_sapiens_assembly38.fasta",
 	output:
-		bam = "Outputs/ApplyBQSR/18_recalibrated.bam",
-		tmp = "Outputs/ApplyBQSR/18_tmp"
+		bam = "Outputs/ApplyBQSR/14_recalibrated.bam",
 	priority: 1
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
@@ -170,7 +167,7 @@ rule ApplyBQSRunmapped:
 		--create-output-bam-index true \
 		-bqsr {input.grp} \
 		--intervals unmapped \
-		--TMP_DIR {output.tmp}"
+		--tmp-dir Outputs/ApplyBQSR/"
 
 rule GatherBamFiles:
 	input:
@@ -188,11 +185,10 @@ rule GatherBamFiles:
 rule HaplotypeCaller:
 	input:
 		bam = "Outputs/GatherBamFiles/GatheredBamFiles.bam",
-		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
+		fasta = "/references/Homo_sapiens_assembly38.fasta",
 		intervals = "intervals/16-lists/{directory}_of_16/scattered.bed",
 	output:
 		vcf = "Outputs/HaplotypeCaller/{directory}_rawVariants.g.vcf.gz",
-		tmp = "Outputs/HaplotypeCaller/{directory}_tmp"
 	threads: 1
 	shell:
 		"gatk --java-options '-Xmx3500M -Djava.io.tempdir=`pwd`/tmp' \
@@ -201,8 +197,10 @@ rule HaplotypeCaller:
 		-O {output.vcf} \
 		-I {input.bam} \
 		-L {input.intervals} \
+		--use-new-qual-calculator \
+		--native-pair-hmm-threads 1 \
 		-ERC GVCF \
-		--TMP_DIR {output.tmp}"
+		--tmp-dir Outputs/HaplotypeCaller/"
 
 rule GatherVCFs:
 	input:
@@ -220,11 +218,10 @@ rule GatherVCFs:
 rule GenotypeGVCFs:
 	input:
 		vcf = "Outputs/GatherVCFs/GatheredVCFs.g.vcf.gz",
-		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
-		intervals = "intervals/contigs/{contigs}.bed",
+		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		intervals = "intervals/bed-contigs/{contigs}_of_13/scattered.bed",
 	output:
 		vcf = "Outputs/GenotypeGVCFs/{contigs}_genotypes.g.vcf.gz",
-		tmp = "Outputs/GenotypeGVCFs/{contigs}_tmp",
 	shell:
 		"gatk --java-options '-Xmx3500M -Djava.io.tempdir=`pwd`/tmp' \
 		GenotypeGVCFs \
@@ -232,7 +229,7 @@ rule GenotypeGVCFs:
 		-O {output.vcf} \
 		-V {input.vcf} \
 		-L {input.intervals} \
-		--TMP_DIR {output.tmp}"
+		--tmp-dir Outputs/GenotypeGVCFs/"
 
 rule GatherVCFs2:
 	input:
@@ -250,15 +247,14 @@ rule GatherVCFs2:
 rule VariantRecalibratorSNP:
 	input:
 		vcf = "Outputs/GatherVCFs2/GatheredVCFs2.g.vcf.gz",
-		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
-		dbsnp = "/home/oskar/01-workspace/01-data/refdata/hg38/dbsnp_146.hg38.vcf.gz",
-		v1000g = "/home/oskar/01-workspace/01-data/refdata/hg38/1000G_phase1.snps.high_confidence.hg38.vcf.gz",
-		omni = "/home/oskar/01-workspace/01-data/refdata/hg38/1000G_omni2.5.hg38.vcf.gz",
-		hapmap = "/home/oskar/01-workspace/01-data/refdata/hg38/hapmap_3.3.hg38.vcf.gz"
+		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		dbsnp = "/references/dbsnp_146.hg38.vcf.gz",
+		v1000g = "/references/1000G_phase1.snps.high_confidence.hg38.vcf.gz",
+		omni = "/references/1000G_omni2.5.hg38.vcf.gz",
+		hapmap = "/references/hapmap_3.3.hg38.vcf.gz"
 	output:
 		recal = "Outputs/VariantRecalibratorSNP/SnpVQSR.recal",
 		tranches = "Outputs/VariantRecalibratorSNP/SnpVQSR.tranches",
-		tmp = "Outputs/VariantRecalibratorSNP/tmp",
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		VariantRecalibrator \
@@ -275,18 +271,18 @@ rule VariantRecalibratorSNP:
 		-tranche 97.0 -tranche 90.0 \
 		--tranches-file {output.tranches} \
 		--output {output.recal} \
-		--TMP_DIR {output.tmp}"
+		--max-gaussians 4 \
+		--tmp-dir Outputs/VariantRecalibratorSNP/"
 
 rule VariantRecalibratorINDEL:
 	input:
 		vcf = "Outputs/GatherVCFs2/GatheredVCFs2.g.vcf.gz",
-		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
-		dbsnp = "/home/oskar/01-workspace/01-data/refdata/hg38/dbsnp_146.hg38.vcf.gz",
-		mills = "/home/oskar/01-workspace/01-data/refdata/hg38/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz",
+		fasta = "/references/Homo_sapiens_assembly38.fasta",
+		dbsnp = "/references/dbsnp_146.hg38.vcf.gz",
+		mills = "/references/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz",
 	output:
 		recal = "Outputs/VariantRecalibratorINDEL/IndelVQSR.recal",
 		tranches = "Outputs/VariantRecalibratorINDEL/IndelVQSR.tranches",
-		tmp = "Outputs/VariantRecalibratorINDEL/tmp"
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		VariantRecalibrator \
@@ -301,18 +297,17 @@ rule VariantRecalibratorINDEL:
 		-tranche 90.0 \
 		--tranches-file {output.tranches} \
 		--output {output.recal} \
-		--TMP_DIR {output.tmp} \
+		--tmp-dir Outputs/VariantRecalibratorINDEL/ \
 		--max-gaussians 4"
 
 rule ApplyVqsrSnp:
 	input:
 		vcf = "Outputs/GatherVCFs2/GatheredVCFs2.g.vcf.gz",
-		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
+		fasta = "/references/Homo_sapiens_assembly38.fasta",
 		recal = "Outputs/VariantRecalibratorSNP/SnpVQSR.recal",
 		tranches = "Outputs/VariantRecalibratorSNP/SnpVQSR.tranches"
 	output:
 		vcf = "Outputs/ApplyVqsrSnp/SnpApplyVQSR.g.vcf.gz",
-		tmp = "Outputs/ApplyVqsrSnp/tmp",
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		ApplyVQSR \
@@ -323,17 +318,16 @@ rule ApplyVqsrSnp:
 		-tranches-file {input.tranches} \
 		-recal-file {input.recal} \
 		-O {output.vcf} \
-		--TMP_DIR {output.tmp}"
+		--tmp-dir Outputs/ApplyVqsrSnp/"
 
 rule ApplyVqsrIndel:
 	input:
 		vcf = "Outputs/GatherVCFs2/GatheredVCFs2.g.vcf.gz",
-		fasta = "/home/oskar/01-workspace/01-data/refdata/hg38/Homo_sapiens_assembly38.fasta",
+		fasta = "/references/Homo_sapiens_assembly38.fasta",
 		recal = "Outputs/VariantRecalibratorINDEL/IndelVQSR.recal",
 		tranches = "Outputs/VariantRecalibratorINDEL/IndelVQSR.tranches"
 	output:
 		vcf = "Outputs/ApplyVqsrIndel/IndelApplyVQSR.g.vcf.gz",
-		tmp = "Outputs/ApplyVqsrIndel/tmp",
 	shell:
 		"gatk --java-options -Djava.io.tempdir=`pwd`/tmp \
 		ApplyVQSR \
@@ -344,4 +338,4 @@ rule ApplyVqsrIndel:
 		-tranches-file {input.tranches} \
 		-recal-file {input.recal} \
 		-O {output.vcf} \
-		--TMP_DIR {output.tmp}"
+		--tmp-dir Outputs/ApplyVqsrIndel/"
