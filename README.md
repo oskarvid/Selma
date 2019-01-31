@@ -1,5 +1,5 @@
 # Germline Variant Calling Pipeline built in Snakemake  
-test
+
 The Snakefile is adapted to run inside a docker container that I prepared for the pipeline. Either download it manually with `docker pull oskarv/snakemake-germline-tools`
 or run the start script and it'll get downloaded automatically if it isn't already downloaded. Alternatively build it manually with the Dockerfile.  
 
