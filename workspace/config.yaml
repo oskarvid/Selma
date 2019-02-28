@@ -1,0 +1,30 @@
+# TSV file format:
+# N.B tab separated columns in the tsv!
+#flowcell  sample  library lane  R1  R2
+samples: samples.tsv
+
+scattercount: 30
+
+b37:
+  contigfiles: 18
+  fasta: "/references/b37/human_g1k_v37_decoy.fasta"
+  fai: "/references/b37/human_g1k_v37_decoy.fasta.fai"
+  dict: "/references/b37/human_g1k_v37_decoy.dict"
+  dbsnp: "/references/b37/dbsnp.vcf"
+  hapmap: "/references/b37/hapmap.vcf"
+  omni: "/references/b37/omni.vcf"
+  v1000g: "/references/b37/1000G_phase1.indels.b37.vcf"
+  mills: "/references/b37/1000g.vcf"
+  intervals: "/references/b37/b37_wgs_calling_regions.v1.interval_list"
+
+hg38:
+  contigfiles: 19
+  fasta: "/references/hg38/Homo_sapiens_assembly38.fasta"
+  fai: "/references/hg38/Homo_sapiens_assembly38.fasta.fai"
+  dict: "/references/hg38/Homo_sapiens_assembly38.dict"
+  dbsnp: "/references/hg38/dbsnp_146.hg38.vcf.gz"
+  hapmap: "/references/hg38/hapmap_3.3.hg38.vcf.gz"
+  omni: "/references/hg38/1000G_omni2.5.hg38.vcf.gz"
+  v1000g: "/references/hg38/1000G_phase1.snps.high_confidence.hg38.vcf.gz"
+  mills: "/references/hg38/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz"
+  intervals: "/references/hg38/wgs_calling_regions.hg38.interval_list"

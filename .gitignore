@@ -1,2 +1,3 @@
 .snakemake
 .Snakefile.swp
+singularity/*.simg
