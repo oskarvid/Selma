@@ -2,7 +2,7 @@
 
 ## Disclaimer
 Active development of this pipeline has moved to https://github.com/elixir-no-nels/snakemake_germline, this version of the workflow is saved for legacy purposes.
-The new version is adapted for usage on (TSD)[https://www.uio.no/tjenester/it/forskning/sensitiv/], it is much more complex and uses advanced features to increase
+The new version is adapted for usage on [TSD](https://www.uio.no/tjenester/it/forskning/sensitiv/), it is much more complex and uses advanced features to increase
 the generalizability of usage. The version in this repository is more suitable for single sample usage for users who know their way around snakemake.
 
 ## Introduction
