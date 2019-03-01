@@ -1,5 +1,11 @@
 # Germline Variant Calling Pipeline built in Snakemake  
 
+## Disclaimer
+Active development of this pipeline has moved to https://github.com/elixir-no-nels/snakemake_germline, this version of the workflow is saved for legacy purposes.
+The new version is adapted for usage on (TSD)[https://www.uio.no/tjenester/it/forskning/sensitiv/], it is much more complex and uses advanced features to increase
+the generalizability of usage. The version in this repository is more suitable for single sample usage for users who know their way around snakemake.
+
+## Introduction
 The Snakefile is adapted to run inside a docker container that I prepared for the pipeline. Either download it manually with `docker pull oskarv/snakemake-germline-tools`
 or run the start script and it'll get downloaded automatically if it isn't already downloaded. Alternatively build it manually with the Dockerfile.  
 
@@ -51,7 +57,3 @@ After correspondence with The Broad Institute, the organization that develops WD
  rather be used on e.g Google cloud, and that the shards should be distributed to a compute node each. This is not always possible, hence this feature is
  sorely needed in WDL since the lack of it causes unecessary inefficiens. To be fair there are optimizations in this pipeline that could be implemented
 in my current WDL germline pipeline that should decrease the execution time by at least ~70 minutes. `</rant>`
-
-## Planned features and testing  
-I am still learning Snakemake, and so far I am planning to enable the use of a config file to define input paths and variables.  
-
