@@ -14,3 +14,4 @@ singularity exec \
 -B $(pwd):/data \
 -W $(pwd) \
 singularity/snakemake-germline-tools.simg snakemake -j --config version="${REF}"
+
