@@ -1,36 +1,36 @@
 # Selma - A Germline Variant Calling Workflow built in Snakemake  
 
 ## About Selma
-Selma is a germline variant calling workflow developed at the University of Bergen. The guiding philosophy behind it is that it should be easy to setup, easy to use and that it utilizes system resources efficiently. This is achieved by adopting a user centric frame of mind that aims to simplify complex tasks without sacrificing functionality. The workflow itself is based on [Snakemake](https://snakemake.readthedocs.io/en/stable/){:target="_blank"} and all dependencies are handled by using [Docker](https://www.docker.com/){:target="_blank"} and [Singularity](https://singularity.lbl.gov/){:target="_blank"} container technology. The current intended platform is [TSD](https://www.uio.no/tjenester/it/forskning/sensitiv/){:target="_blank"} but support for [HUNT-cloud](https://www.ntnu.edu/mh/huntcloud){:target="_blank"} as well as local execution is planned for future releases.  
-Selma is named after the mythical Norwegian sea serpent that supposedly lives in [Lake Seljord](https://en.wikipedia.org/wiki/Selma_(lake_monster)){:target="_blank"}
+Selma is a germline variant calling workflow developed at the University of Bergen. The guiding philosophy behind it is that it should be easy to setup, easy to use and that it utilizes system resources efficiently. This is achieved by adopting a user centric frame of mind that aims to simplify complex tasks without sacrificing functionality. The workflow itself is based on [Snakemake](https://snakemake.readthedocs.io/en/stable/) and all dependencies are handled by using [Docker](https://www.docker.com/) and [Singularity](https://singularity.lbl.gov/) container technology. The current intended platform is [TSD](https://www.uio.no/tjenester/it/forskning/sensitiv/) but support for [HUNT-cloud](https://www.ntnu.edu/mh/huntcloud) as well as local execution is planned for future releases.  
+Selma is named after the mythical Norwegian sea serpent that supposedly lives in [Lake Seljord](https://en.wikipedia.org/wiki/Selma_(lake_monster))
 
-The workflow development is funded by [Elixir2](https://elixir-europe.org/){:target="_blank"}, [NorSeq](https://www.norseq.org/){:target="_blank"} and [Tryggve2](https://neic.no/tryggve/){:target="_blank"}. 
+The workflow development is funded by [Elixir2](https://elixir-europe.org/), [NorSeq](https://www.norseq.org/) and [Tryggve2](https://neic.no/tryggve/). 
 
 #### Graphical visualization of the workflow steps
 ![Graphical visualization of the workflow steps](https://raw.githubusercontent.com/elixir-no-nels/Selma/master/.simplifieddag.png)
-###### This is a simplified graph portraying the key steps that the workflow goes through, [this](https://raw.githubusercontent.com/elixir-no-nels/Selma/master/.completedag.png){:target="_blank"} is a complete overview including every single step. The steps that have been left out only perform "administrative" functions and don't add to the data analysis per se.
+###### This is a simplified graph portraying the key steps that the workflow goes through, [this](https://raw.githubusercontent.com/elixir-no-nels/Selma/master/.completedag.png) is a complete overview including every single step. The steps that have been left out only perform "administrative" functions and don't add to the data analysis per se.
 
 ### Documentation
-* [TSD-instructions](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md){:target="_blank"}  
-* [Instructions for local use](https://github.com/elixir-no-nels/Selma/blob/master/docs/instructions-for-local-use.md){:target="_blank"}  
-* [Developer-instructions](https://github.com/elixir-no-nels/Selma/blob/master/docs/developer-instructions.md){:target="_blank"}  
+* [TSD-instructions](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md)  
+* [Instructions for local use](https://github.com/elixir-no-nels/Selma/blob/master/docs/instructions-for-local-use.md)  
+* [Developer-instructions](https://github.com/elixir-no-nels/Selma/blob/master/docs/developer-instructions.md)  
 
 ### Tools
-[bwa](http://bio-bwa.sourceforge.net/bwa.shtml){:target="_blank"} version 0.7.15-2+deb9u1 - Maps fastq file to reference genome  
-[samtools](http://www.htslib.org/doc/samtools.html){:target="_blank"} version 1.3.1-3 - bwa pipes its output to samtools to make a bam output file  
-The following tools are all [gatk](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/){:target="_blank"} version 4.1.2.0  
-[SplitIntervals](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_SplitIntervals.php){:target="_blank"} - Splits interval list for scatter gather parallelization  
-[FastqToSam](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_FastqToSam.php){:target="_blank"} - Converts fastq files to unmapped bam files  
-[MergeBamAlignment](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_MergeBamAlignment.php){:target="_blank"} - Merge aligned BAM file from bwa with the unmapped BAM file from FastqToSam  
-[MarkDuplicates](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_markduplicates_MarkDuplicates.php){:target="_blank"} - Identifies duplicate reads  
-[BaseRecalibrator](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_bqsr_BaseRecalibrator.php){:target="_blank"} - Generates recalibration table for Base Quality Score Recalibration  
-[GatherBQSRReports](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_bqsr_GatherBQSRReports.php){:target="_blank"} - Gather base recalibration files from BaseRecalibrator  
-[ApplyBQSR](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_bqsr_ApplyBQSR.php){:target="_blank"} - Apply base recalibration from BaseRecalibrator  
-[GatherBamFiles](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_GatherBamFiles.php){:target="_blank"} - Concatenate efficiently BAM files from ApplyBQSR  
-[HaplotypeCaller](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_haplotypecaller_HaplotypeCaller.php){:target="_blank"} - Call germline SNPs and indels via local re-assembly of haplotypes  
-[GenotypeGVCFs](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_GenotypeGVCFs.php){:target="_blank"} - Perform genotyping on one pre-called sample from HaplotypeCaller  
-[VariantRecalibrator](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_vqsr_VariantRecalibrator.php){:target="_blank"} - Build a recalibration model to score variant quality for filtering purposes  
-[ApplyVQSR](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_vqsr_ApplyVQSR.php){:target="_blank"} -  Apply a score cutoff to filter variants based on a recalibration table
+[bwa](http://bio-bwa.sourceforge.net/bwa.shtml) version 0.7.15-2+deb9u1 - Maps fastq file to reference genome  
+[samtools](http://www.htslib.org/doc/samtools.html) version 1.3.1-3 - bwa pipes its output to samtools to make a bam output file  
+The following tools are all [gatk](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/) version 4.1.2.0  
+[SplitIntervals](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_SplitIntervals.php) - Splits interval list for scatter gather parallelization  
+[FastqToSam](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_FastqToSam.php) - Converts fastq files to unmapped bam files  
+[MergeBamAlignment](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_MergeBamAlignment.php) - Merge aligned BAM file from bwa with the unmapped BAM file from FastqToSam  
+[MarkDuplicates](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_markduplicates_MarkDuplicates.php) - Identifies duplicate reads  
+[BaseRecalibrator](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_bqsr_BaseRecalibrator.php) - Generates recalibration table for Base Quality Score Recalibration  
+[GatherBQSRReports](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_bqsr_GatherBQSRReports.php) - Gather base recalibration files from BaseRecalibrator  
+[ApplyBQSR](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_bqsr_ApplyBQSR.php) - Apply base recalibration from BaseRecalibrator  
+[GatherBamFiles](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_GatherBamFiles.php) - Concatenate efficiently BAM files from ApplyBQSR  
+[HaplotypeCaller](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_haplotypecaller_HaplotypeCaller.php) - Call germline SNPs and indels via local re-assembly of haplotypes  
+[GenotypeGVCFs](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_GenotypeGVCFs.php) - Perform genotyping on one pre-called sample from HaplotypeCaller  
+[VariantRecalibrator](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_vqsr_VariantRecalibrator.php) - Build a recalibration model to score variant quality for filtering purposes  
+[ApplyVQSR](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_vqsr_ApplyVQSR.php) -  Apply a score cutoff to filter variants based on a recalibration table
 
 
 ### Credits  

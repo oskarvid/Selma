@@ -8,7 +8,7 @@ Then create a _tab separated file_ using the the header below and add your sampl
 ```bash
 flowcell	sample	library	lane	R1	R2
 ``` 
-Or use [this](https://raw.githubusercontent.com/elixir-no-nels/Selma/master/samples.tsv){:target="_blank"} as a template.  
+Or use [this](https://raw.githubusercontent.com/elixir-no-nels/Selma/master/samples.tsv) as a template.  
 Populate the columns with appropriate information, then save the file and name it `my-samples.tsv` or something suitable. Remember to tab separate the columns.  
 Assuming you already have the input files ready, and that the output directory exists, you can now start the workflow as such:  
 ```bash 
@@ -67,7 +67,7 @@ The next step is to prepare the tsv file.
 
 ### Preparing the tsv file
 The tsv file is used to tell the workflow which files belong to the same sample. If you want to analyse many samples at once you simply put all information per sample and file in the tsv file. The sample information is also used to create proper read groups, this will help you identify the files since this information is put in the header of the bam files by the workflow. This information is also used by the workflow to name the output files.  
-Either use the sample file [here](https://github.com/elixir-no-nels/Selma/blob/master/samples.tsv){:target="_blank"} or copy/paste the header below (remember to separate the columns with tabs!) into a new file and add your sample information below:  
+Either use the sample file [here](https://github.com/elixir-no-nels/Selma/blob/master/samples.tsv) or copy/paste the header below (remember to separate the columns with tabs!) into a new file and add your sample information below:  
 ```bash
 flowcell	sample	library	lane	R1	R2
 ```  
@@ -98,7 +98,7 @@ The final required step is to select the reference file version.
 
 ### Selecting reference file version
 You have a choice of two reference file versions, either the `b37` decoy version, or the `hg38` version.
-[This article](https://arxiv.org/pdf/1404.0929.pdf){:target="_blank"} has some interesting comparisons of the b37/GRCh37 and hg38/GRCh38 reference files.
+[This article](https://arxiv.org/pdf/1404.0929.pdf) has some interesting comparisons of the b37/GRCh37 and hg38/GRCh38 reference files.
 
 If you don't know which one to choose you should probably use hg38, it's generally more complete compared to b37 according to the article above.
 
@@ -112,20 +112,20 @@ And that's it! You should be able to run the workflow now by running the followi
 cd /cluster/projects/p172/UiO-Cancer/
 ./start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs -r hg38
 ```
-This will run Selma on Colossus using the Singularity image that was built with [this](https://github.com/elixir-no-nels/Selma/blob/master/singularity/BuildSingularityImage.sh){:target="_blank"} script.
+This will run Selma on Colossus using the Singularity image that was built with [this](https://github.com/elixir-no-nels/Selma/blob/master/singularity/BuildSingularityImage.sh) script.
 
 ### Optional custom interval file (e.g for exome calling)
 This feature has not been quality tested yet but should in principle work as it should.  
 If you want to do exome calling you need to be certain that your interval file is compatible with the default reference files.  
 The hg38 reference files have chromosome names of the format: `chr1	chr2	chr3	etc`  
-For a complete list of contigs in the hg38 reference fasta file you can check out this .dict file: [ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.dict](ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.dict){:target="_blank"}  
+For a complete list of contigs in the hg38 reference fasta file you can check out this .dict file: [ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.dict](ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.dict)  
 In case it asks for password there is none, just hit enter.
 
 The b37 reference files have chromosome names like this: `1	2	3	etc`.  
-For a complete list of contigs in the b37 reference fasta file you can check out this .dict file: [ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/human_g1k_v37.dict.gz](ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/human_g1k_v37.dict.gz){:target="_blank"}  
+For a complete list of contigs in the b37 reference fasta file you can check out this .dict file: [ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/human_g1k_v37.dict.gz](ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/human_g1k_v37.dict.gz)  
 In case it asks for password there is none, just hit enter.
 
-There's a default hg38 and a b37 interval list that is always used for wgs calling, the intervals are made to exclude e.g centromeric regions since these regions don't add any useful information for variant calling. Here's some more information: [https://software.broadinstitute.org/gatk/documentation/article?id=11009](https://software.broadinstitute.org/gatk/documentation/article?id=11009){:target="_blank"}  
+There's a default hg38 and a b37 interval list that is always used for wgs calling, the intervals are made to exclude e.g centromeric regions since these regions don't add any useful information for variant calling. Here's some more information: [https://software.broadinstitute.org/gatk/documentation/article?id=11009](https://software.broadinstitute.org/gatk/documentation/article?id=11009)  
 Here's the most relevant part from that link:  
 > **Whole genomes (WGS)**  
 	For whole genome sequence, the intervals lists don’t depend on the prep (since in principle you captured the “whole genome”) so instead it depends on what regions of the genome you want to blacklist (e.g. centromeric regions that waste your time for nothing) and how the reference genome build enables you to cut up regions (separated by Ns) for scatter-gather parallelizing.  

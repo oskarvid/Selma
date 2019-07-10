@@ -6,7 +6,7 @@ You will need to go through these steps:
 
 ### Cloning this repository and building the Singularity image
 **Install Singularity**  
-The current version of the workflow has been tested using Singularity version 2.5.1, it may or may not function as expected using any other version. You will find Singularity installation instructions here: [https://www.sylabs.io/docs/](https://www.sylabs.io/docs/){:target="_blank"}  
+The current version of the workflow has been tested using Singularity version 2.5.1, it may or may not function as expected using any other version. You will find Singularity installation instructions here: [https://www.sylabs.io/docs/](https://www.sylabs.io/docs/)  
 
 **Clone the repository and build the Singularity image**  
 Now run this:
@@ -22,7 +22,7 @@ When the Singularity image has been built, make a `.tar.gz` archive of the Selma
 cd ../
 tar -zcvf Selma.tar.gz Selma/
 ```
-Then use your [preferred method](https://www.uio.no/english/services/it/research/sensitive-data/use-tsd/import-export/){:target="_blank"} to copy the `Selma.tar.gz` archive to TSD.  
+Then use your [preferred method](https://www.uio.no/english/services/it/research/sensitive-data/use-tsd/import-export/) to copy the `Selma.tar.gz` archive to TSD.  
 Once it has been copied to TSD, run the following steps:  
 ```bash
 mv /tsd/shared/bioinformatics/workflows/Selma /tsd/shared/bioinformatics/workflows/Selma_backup
@@ -30,7 +30,7 @@ tar -zxvf Selma.tar.gz -C /tsd/shared/bioinformatics/workflows/
 ```
 This will only work if you have write permission to the `/tsd/shared/bioinformatics/` directory.
 ### Downloading and indexing reference files  
-There is a public ftp server with the reference files here: [ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle](ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle){:target="_blank"}  
+There is a public ftp server with the reference files here: [ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle](ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle)  
 To download the supported reference files you need to run these commands.  
 
 ```bash
@@ -48,10 +48,10 @@ wget https://storage.googleapis.com/gatk-legacy-bundles/b37/wgs_calling_regions.
 There is a second method to download the reference files, I will document it here, but the files aren't the same as on the ftp server so this is only here just in case. Using these files would require fixing the paths in the workflow too so don't use them unless you _really_ need to.  
 <details><summary>Click here for the instructions</summary>
 <p>
-The files are hosted in Google buckets here: [b37](https://console.cloud.google.com/storage/browser/gatk-legacy-bundles/b37/){:target="_blank"} and here [hg38](https://console.cloud.google.com/storage/browser/genomics-public-data/resources/broad/hg38/v0/){:target="_blank"}  
+The files are hosted in Google buckets here: [b37](https://console.cloud.google.com/storage/browser/gatk-legacy-bundles/b37/) and here [hg38](https://console.cloud.google.com/storage/browser/genomics-public-data/resources/broad/hg38/v0/)  
 A Google account is necessary to browse the file buckets, but you can still download them with gsutils without having a Google account.  
 The current Selma version uses the ftp hosted reference files, and a difference between the two is that e.g `dbsnp_146.vcf` is **not** available in the hg38 version hosted on Google, maybe this will change, or maybe one day Selma will use another dbsnp.vcf version, but until then this why you need to download the ftp hosted reference files.
-So, just in case this becomes relevant in the future; To download all reference files in one go you should use `gsutils`. Either install it following the appropriate instructions [here](https://cloud.google.com/storage/docs/gsutil_install){:target="_blank"} or use docker like this:  
+So, just in case this becomes relevant in the future; To download all reference files in one go you should use `gsutils`. Either install it following the appropriate instructions [here](https://cloud.google.com/storage/docs/gsutil_install) or use docker like this:  
 For b37 do:
 ```bash
 docker run --rm -ti -v $(pwd):/data -w /data google/cloud-sdk:latest gsutil -m cp -r gs://gatk-legacy-bundles/b37 .
@@ -82,7 +82,7 @@ cd /path/to/directory/with/hg38orb37
 tar -zcvf hg38.tar.gz hg38
 tar -zcvf b37.tar.gz b37
 ```
-Then you can upload the reference file archives to TSD with your [preferred method](https://www.uio.no/english/services/it/research/sensitive-data/use-tsd/import-export/){:target="_blank"}.  
+Then you can upload the reference file archives to TSD with your [preferred method](https://www.uio.no/english/services/it/research/sensitive-data/use-tsd/import-export/).  
 Once the reference file archives have been uploaded to TSD, untar them like so:
 ```bash
 cd /tsd/pXX/data/durable/file-import/
