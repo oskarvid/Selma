@@ -1,9 +1,6 @@
 <h1 align="center">
   <br>
   <a href="https://github.com/elixir-no-nels/Selma"><img src="https://github.com/elixir-no-nels/Selma/blob/master/.Selma-snake-head.png" alt="Selma" width="200"></a>
-  <br>
-  Selma
-  <br>
 </h1>
 
 ## About Selma
