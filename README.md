@@ -1,4 +1,10 @@
-# Selma - A Germline Variant Calling Workflow built in Snakemake  
+<h1 align="center">
+  <br>
+  <a href="https://github.com/elixir-no-nels/Selma"><img src="https://github.com/elixir-no-nels/Selma/blob/master/.Selma-snake-head.png" alt="Selma" width="200"></a>
+  <br>
+  Selma
+  <br>
+</h1>
 
 ## About Selma
 Selma is a germline variant calling workflow developed at the University of Bergen. The guiding philosophy behind it is that it should be easy to setup, easy to use and that it utilizes system resources efficiently. This is achieved by adopting a user centric frame of mind that aims to simplify complex tasks without sacrificing functionality. The workflow itself is based on [Snakemake](https://snakemake.readthedocs.io/en/stable/) and all dependencies are handled by using [Docker](https://www.docker.com/) and [Singularity](https://singularity.lbl.gov/) container technology. The current intended platform is [TSD](https://www.uio.no/tjenester/it/forskning/sensitiv/) but support for [HUNT-cloud](https://www.ntnu.edu/mh/huntcloud) as well as local execution is planned for future releases.  
