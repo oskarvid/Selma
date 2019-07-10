@@ -2,17 +2,20 @@
 import pandas as pd
 import glob
 
-# Change the working directory to '/data/workspace' to separate code from input and output files
-workdir: '/data/workspace'
+# Change the working directory to 'workspace' to separate code from input and output files
+workdir: 'workspace'
 
 # Read functions.smk file to define the functions that are used to create the read group and select input files
-include: '/data/functions.smk'
+include: 'functions.smk'
 
 # Define path for the config file
-configfile: '/data/config.yaml'
+configfile: 'config.yaml'
 
-# This variable is defined when the workflow is started by using "--config version=hg38|b37"
+# This variable is define when the workflow is started by using "--config version=hg38|b37"
 refversion = config['version']
+
+# This variable is defined when the workflow is started by using '--config interval="${INTERVAL}"'
+interval = config['interval']
 
 # The following variables are used to select interval files and create output file names
 CONTIGCOUNT = config[refversion]['contigfiles']
@@ -20,43 +23,36 @@ CONTIGS = range(1, CONTIGCOUNT)
 GATHERCONTIGS = range(1, (( CONTIGCOUNT + 1 )))
 
 SCATTERCOUNT = config['scattercount']
-DIRECTORIES = range(1, (( SCATTERCOUNT + 1 )))
+DIRECTORIES=[]
+for i in range(SCATTERCOUNT):
+	DIRECTORIES.append(str(i).zfill(4))
 
 # Create variables to select sample names, lane numbers and flowcell names from the sample.tsv file
 samples = pd.read_csv(config["samples"], sep='\t', dtype=str).set_index(["flowcell", "sample", "lane"], drop=False)
-samples.index = samples.index.set_levels([i.astype(str) for i in samples.index.levels])  # enforce str in index
+samples.index = samples.index.set_levels([i.astype(str) for i in samples.index.levels]) # enforce str in index
 
-# Define variable names and collect output files from the final rule
 rule all:
 	input:
-		expand("Outputs/BwaMem/{sample}_{lane}_{flowcell}.mapped.bam", zip,
-			sample=samples['sample'], 
-			lane=samples['lane'],
-			flowcell=samples['flowcell']),
-		expand("Outputs/FastqToSam/{sample}_{lane}_{flowcell}.unmapped.bam", zip,
-			sample=samples['sample'], 
-			lane=samples['lane'],
-			flowcell=samples['flowcell']),
 		expand("Outputs/ApplyVqsrSnp/{sample}_SnpApplyVQSR.g.vcf.gz", 
 			sample=samples['sample']),
 		expand("Outputs/ApplyVqsrIndel/{sample}_IndelApplyVQSR.g.vcf.gz", 
 			sample=samples['sample']),
 
 # This rule creates a tsv file with the contigs grouped into roughly equal combined lengths.
-# The script should be improved to create a separate file per group so as to avoid the need \
-# for the MakeTSVs.sh file which performs this function.
+# The script should be improved to create a separate file per group so as to avoid the need
+# for the MakeTSVs.sh script which performs this function
 rule MakeSequenceGroupings:
 	input:
 		config[refversion]['dict'],
 	output:
-		"Outputs/MakeContigBeds/sequence_grouping_with_unmapped.tsv",
+		temp("Outputs/MakeContigBeds/sequence_grouping_with_unmapped.tsv"),
 	priority:
 		30
 	shell:
-		"python2 /data/scripts/split-bedfile.py {input} Outputs/MakeContigBeds/"
+		"python2 scripts/split-bedfile.py {input} Outputs/MakeContigBeds/"
 
-# Split the sequence_grouping_with_unmapped.tsv file into one file per line.
-# This script should be made obsolete by performing its function in the split-bedfile.py instead.
+# Split the sequenc_grouping_with_unmapped.tsv file into one file per line
+# This script should be made osbolete by performin its function in the split-bedfile.py instead
 rule MakeContigBeds:
 	input:
 		"Outputs/MakeContigBeds/sequence_grouping_with_unmapped.tsv"
@@ -65,33 +61,39 @@ rule MakeContigBeds:
 	priority:
 		30
 	shell:
-		"bash /data/scripts/MakeTSVs.sh {input} Outputs/MakeContigBeds/"
+		"bash scripts/MakeTSVs.sh {input} Outputs/MakeContigBeds/"
 
 # Split the interval list for HaplotypeCaller into sub intervals for scatter gather execution
 rule MakeIntervalLists:
 	input:
-		config[refversion]['intervals'],
+		interval = interval,
+		fasta = config[refversion]['fasta'],
 	output:
-		expand("Outputs/MakeIntervalLists/{directory}_of_{total}/scattered.interval_list", 
-			directory=DIRECTORIES, 
-			total=SCATTERCOUNT),
+		temp("Outputs/MakeIntervalLists/{split}-scattered.interval_list"),
 	priority:
 		30
 	shell:
-		"python2 /data/scripts/create_scatter_intervals.py {input} {SCATTERCOUNT} 4 'Outputs/MakeIntervalLists' 'This is a placeholder that should or could contain information about something useful regarding the interval lists'"
+		"touch {output} && gatk \
+		SplitIntervals \
+		-L {input.interval} \
+		-R {input.fasta} \
+		--scatter-count {SCATTERCOUNT} \
+		-O Outputs/MakeIntervalLists/"
 
 # Map fastq files to reference genome
 rule BwaMem:
 	input:
-		fasta = config[refversion]['fasta'],
 		fastq1 = get_fastq1,
 		fastq2 = get_fastq2,
+		fasta = config[refversion]['fasta'],
 	params:
 		rgs = get_BwaRG,
 	output:
 		temp("Outputs/BwaMem/{sample}_{lane}_{flowcell}.mapped.bam"),
+	benchmark:
+		"Outputs/benchmarks/{sample}_{lane}_{flowcell}.bwa.tsv",
 	threads:
-		12
+		15
 	priority:
 		0
 	shell:
@@ -105,18 +107,20 @@ rule BwaMem:
 # Create unmapped bam files from the fastq files
 rule FastqtoSam:
 	input:
-		fasta = config[refversion]['fasta'],
 		fastq1 = get_fastq1,
 		fastq2 = get_fastq2,
+		fasta = config[refversion]['fasta'],
 	output:
 		bam = temp("Outputs/FastqToSam/{sample}_{lane}_{flowcell}.unmapped.bam"),
 		tmp = directory(temp("Outputs/FastqToSam/{sample}_{lane}_{flowcell}.tmp")),
+	benchmark:
+		"Outputs/benchmarks/{sample}_{lane}_{flowcell}.FastqToSam.tsv",
 	params:
+		lane = get_FQLN,
 		sample = get_FQSM,
 		flowcell = get_FQFC,
-		lane = get_FQLN,
 		library = get_FQLIB,
-	priority: 1
+	priority: 2
 	shell:
 		r"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
 		FastqToSam \
@@ -130,8 +134,8 @@ rule FastqtoSam:
 		--PLATFORM_UNIT '{params.flowcell}.{params.lane}.{params.sample}' \
 		--TMP_DIR {output.tmp}"
 
-# Due to the hack used to define the input files for MarkDuplicates, the bam \
-# file from MergeBamAlignment cannot be flagged as temp()
+# Due to the usage of the MarkDupCheckpoint below it is not possible to flag the bam
+# file from MergeBamAlignment as temp(), this seems like a bug
 rule MergeBamAlignment:
 	input:
 		fasta = config[refversion]['fasta'],
@@ -140,6 +144,8 @@ rule MergeBamAlignment:
 	output:
 		bam = "Outputs/MergeBamAlignment/{sample}_{lane}_{flowcell}.merged.bam",
 		tmp = directory(temp("Outputs/MergeBamAlignment/{sample}_{lane}_{flowcell}.tmp")),
+	benchmark:
+		"Outputs/benchmarks/{sample}_{lane}_{flowcell}.MergeBamAlignments.tsv",
 	shell:
 		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
 		MergeBamAlignment \
@@ -161,21 +167,11 @@ rule MergeBamAlignment:
 		--REFERENCE_SEQUENCE {input.fasta} \
 		--PROGRAM_GROUP_VERSION '0.7.12-r1039' \
 		--PRIMARY_ALIGNMENT_STRATEGY MostDistant \
-		--PROGRAM_GROUP_COMMAND_LINE 'bwa mem -t 18 -R -M Input1 Input2 > output.sam' \
+		--PROGRAM_GROUP_COMMAND_LINE 'bwa mem -t 15 -R -M Input1 Input2 > output.sam' \
 		--TMP_DIR {output.tmp}"
 
-# This checkpoint placeholder was the only way I could find that \
-# let me run MarkDuplicates correctly, it's a hack, but it works, \
-# feel free to solve it cleanly, I don't know how to.
-# A clean solution would allow the current glob() solution but without \
-# the need for the checkpoint. Unfortunately snakemake needs the output files \
-# to exist for the glob() function to work, clearly this is impossible when \
-# the workflow is started, and this is therefore a limitation of snakemake. 
-# A clean solution would probably create a string with the input file path as \
-# input for MarkDuplicates, but for now the checkpoint solution does the trick.
-# It would have been convenient to make MergeBamAlignment the checkpoint \
-# but it wouldn't recognize it for some reason, hence the checkpoint rule hack below.
-
+# It would have been convenient to make MergeBamAlignment the checkpoint
+# but it wouldn't recognize it for some reason, hence the checkpoint rule below.
 checkpoint MarkDupCheckpoint:
 	input:
 		expand("Outputs/MergeBamAlignment/{sample}_{lane}_{flowcell}.merged.bam", zip,
@@ -195,7 +191,10 @@ rule MarkDup:
 	output:
 		tmp = directory(temp("Outputs/MarkDuplicates/{sample}_tmp")),
 		bam = temp("Outputs/MarkDuplicates/{sample}_markedDuplicates.bam"),
+		bai = temp("Outputs/MarkDuplicates/{sample}_markedDuplicates.bai"),
 		metrics = "Outputs/MarkDuplicates/{sample}_markedDuplicates.metrics",
+	benchmark:
+		"Outputs/benchmarks/{sample}.MarkDup.tsv",
 	shell:
 		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
 		MarkDuplicates \
@@ -207,24 +206,34 @@ rule MarkDup:
 		$(echo ' {input.files}' | sed 's/ / --INPUT /g') \
 		--TMP_DIR {output.tmp}"
 
-# Ideally the intervals in the contig bed file would be stored in a list or something like that, \
-# that way it would probably be possible to use a cleaner solution than "$(cat {input.contigs})" to \
-# supply the "--intervals chr1:1+" etc. 
+# Run checkpoint so that glob() in BaseRecalibrator finds the input files
+checkpoint BaseRecalibratorCheckpoint:
+	input:
+		"Outputs/MakeContigBeds/flag",
+	output:
+		touch("Outputs/MakeContigBeds/placeholder"),
+	shell:
+		"echo 'Running checkpoint rule to create correct dependency for BaseRecalibrator to start after MakeContigBeds and be able to find the bed files correctly'"
+
+# Do base quality score recalibration
 rule BaseRecalibrator:
 	input:
 		fasta = config[refversion]['fasta'],
 		dbsnp = config[refversion]['dbsnp'],
 		mills = config[refversion]['mills'],
 		v1000g = config[refversion]['v1000g'],
-		flag = "Outputs/MakeContigBeds/flag",
+		flag = "Outputs/MakeContigBeds/placeholder",
 		bam = "Outputs/MarkDuplicates/{sample}_markedDuplicates.bam",
+		bai = "Outputs/MarkDuplicates/{sample}_markedDuplicates.bai",
 		contigs = lambda wcs: glob.glob('Outputs/MakeContigBeds/contigs_%s.bed' % wcs.contigs),
 	threads:
 		1
 	output:
 		grp = temp("Outputs/BaseRecalibrator/{sample}_BQSR_{contigs}.grp"),
+	benchmark:
+		"Outputs/benchmarks/{sample}_{contigs}.BaseRecalibrator.tsv",
 	shell:
-		"gatk --java-options '-Xmx3375M -Djava.io.tempdir=$(pwd)/tmp' \
+		"gatk --java-options '-Xmx3500M -Djava.io.tempdir=$(pwd)/tmp' \
 		BaseRecalibrator \
 		-O {output.grp} \
 		--input {input.bam} \
@@ -235,11 +244,7 @@ rule BaseRecalibrator:
 		--tmp-dir Outputs/BaseRecalibrator \
 		$(cat {input.contigs})"
 
-# The bqsr files from BaseRecalibrator need to be merged into one
-# The input substitution with the sed pipe is a bit hacky, the previous solution \
-# relied on a run directive with python code to create the {input} definition, \
-# but due to the use of singularity this isn't possible, therefore the current bash \
-# command substitution is used.
+# Merge bqsr files from BaseRecalibrator into one
 rule GatherBQSRReports:
 	input:
 		expand("Outputs/BaseRecalibrator/{{sample}}_BQSR_{directory}.grp",
@@ -252,20 +257,22 @@ rule GatherBQSRReports:
 		-O {output} \
 		$(echo ' {input}' | sed 's/ / --input /g')"
 
-# This rule applies the recalibration that BaseRecalibrator calculated, due to the usage of glob() \
-# it's necessary to include the flag from MakeContigBeds, otherwise glob() won't find the input files.
-# The cat input substitution can probably be done smoother somehow, it's necessary due to the use of glob()
+# Apply base quality score recalibration 
 rule ApplyBQSR:
 	input:
 		fasta = config[refversion]['fasta'],
-		flag = "Outputs/MakeContigBeds/flag",
+		flag = "Outputs/MakeContigBeds/placeholder",
 		grp = "Outputs/GatherBQSR/{sample}_GatheredBQSR.grp",
 		bam = "Outputs/MarkDuplicates/{sample}_markedDuplicates.bam",
+		bai = "Outputs/MarkDuplicates/{sample}_markedDuplicates.bai",
 		contigs = lambda wcs: glob.glob('Outputs/MakeContigBeds/contigs_%s.bed' % wcs.con),
 	output:
 		bam = temp("Outputs/ApplyBQSR/{sample}_{con}_recalibrated.bam"),
+		bai = temp("Outputs/ApplyBQSR/{sample}_{con}_recalibrated.bai"),
+	benchmark:
+		"Outputs/benchmarks/{sample}_{con}.ApplyBQSR.tsv",
 	shell:
-		"gatk --java-options '-Xmx3375M -Djava.io.tempdir=$(pwd)/tmp' \
+		"gatk --java-options '-Xmx3500M -Djava.io.tempdir=$(pwd)/tmp' \
 		ApplyBQSR \
 		-O {output.bam} \
 		-bqsr {input.grp} \
@@ -275,76 +282,99 @@ rule ApplyBQSR:
 		--create-output-bam-index true \
 		--tmp-dir Outputs/ApplyBQSR"
 
-# This rule merges the bam files from ApplyBQSR into one.
-# The input substitution with the sed pipe is a bit hacky, the previous solution \
-# relied on a run directive with python code to create the {input} definition, \
-# but due to the use of singularity this isn't possible, therefore the current bash \
-# command substitution is used.
+# Merge bam files from ApplyBQSR into one
 rule GatherApplyBQSRbams:
 	input:
-		expand("Outputs/ApplyBQSR/{{sample}}_{directory}_recalibrated.bam",
-			directory=GATHERCONTIGS),
+		bai = expand("Outputs/ApplyBQSR/{{sample}}_{con}_recalibrated.bai",
+			con=GATHERCONTIGS),
+		bam = expand("Outputs/ApplyBQSR/{{sample}}_{con}_recalibrated.bam",
+			con=GATHERCONTIGS),
 	output:
-		bam = temp("Outputs/GatherBamFiles/{sample}_GatheredBamFiles.bam"),
+		bam = "Outputs/GatherBamFiles/{sample}_GatheredABQSRFiles.bam",
+		bai = "Outputs/GatherBamFiles/{sample}_GatheredABQSRFiles.bai",
+	benchmark:
+		"Outputs/benchmarks/{sample}.GatheredBamFiles.tsv",
 	shell:
 		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
 		GatherBamFiles \
 		-O {output.bam} \
-		$(echo ' {input}' | sed 's/ / --INPUT /g') \
+		$(echo ' {input.bam}' | sed 's/ / --INPUT /g') \
 		--CREATE_INDEX true"
 
-# Call germline SNPs and indels, use interval list for wgs that excludes regions such as centromeres and \
-# also for manual parallelization
+# Call germline SNPs and indels
+# The default is to use an interval list for wgs (that excludes regions such as centromeres) and for manual parallelization.
+# {threads} is set to 2 because Snakemake interprets the core count as cores*2=threads, but that's not right. Therefore it's
+# necessary to make it think HaplotypeCaller consumes 2 threads per process so that only 16 jobs are started if Snakemake is
+# given 16 cores, otherwise it would try to start 32 jobs which would consume way too much RAM.
 rule HaplotypeCaller:
 	input:
 		fasta = config[refversion]['fasta'],
-		bam = "Outputs/GatherBamFiles/{sample}_GatheredBamFiles.bam",
-		intervals = "Outputs/MakeIntervalLists/{directory}_of_30/scattered.interval_list",
+		bam = "Outputs/GatherBamFiles/{sample}_GatheredABQSRFiles.bam",
+		bai = "Outputs/GatherBamFiles/{sample}_GatheredABQSRFiles.bai",
+		intervals = "Outputs/MakeIntervalLists/{split}-scattered.interval_list",
 	output:
-		vcf = temp("Outputs/HaplotypeCaller/{sample}_{directory}_rawVariants.g.vcf.gz"),
-	threads: 1
+		vcf = temp("Outputs/HaplotypeCaller/{sample}_{split}_rawVariants.g.vcf.gz"),
+		tbi = temp("Outputs/HaplotypeCaller/{sample}_{split}_rawVariants.g.vcf.gz.tbi"),
+	benchmark:
+		"Outputs/benchmarks/{sample}_{split}.HaplotypeCaller.tsv",
+	threads:
+		2
 	shell:
-		"gatk --java-options '-Xmx3375M -Djava.io.tempdir=$(pwd)/tmp' \
+		"gatk --java-options '-Xmx3500M -Djava.io.tempdir=$(pwd)/tmp' \
 		HaplotypeCaller \
 		-ERC GVCF \
 		-I {input.bam} \
 		-O {output.vcf} \
 		-R {input.fasta} \
 		-L {input.intervals} \
-		--use-new-qual-calculator TRUE \
-		--native-pair-hmm-threads {threads} \
 		--tmp-dir Outputs/HaplotypeCaller"
 
-# The output files from HaplotypeCaller need to be merged
-# The input substitution with the sed pipe is a bit hacky, the previous solution \
-# relied on a run directive with python code to create the {input} definition, \
-# but due to the use of singularity this isn't possible, therefore the current bash \
-# command substitution is used.
+# The output files from HaplotypeCaller need to be gathered into one file
+# This tool is currently unable to index the output file, the indexing tool handles that
+# The tbi input files are only used as input so that they are deleted at the right time using the temp directive
 rule GatherHTCVCFs:
 	input:
-		expand("Outputs/HaplotypeCaller/{{sample}}_{directory}_rawVariants.g.vcf.gz", 
-			directory=DIRECTORIES)
+		vcf = expand("Outputs/HaplotypeCaller/{{sample}}_{split}_rawVariants.g.vcf.gz", 
+			split=DIRECTORIES),
+		tbi = expand("Outputs/HaplotypeCaller/{{sample}}_{split}_rawVariants.g.vcf.gz.tbi",
+			split=DIRECTORIES),
 	output:
-		vcf = temp("Outputs/GatherVCFs/{sample}_GatheredVCFs.g.vcf.gz"),
+		vcf = temp("Outputs/GatherHTCVCFs/{sample}_GatheredHTCVCFs.g.vcf.gz"),
+	benchmark:
+		"Outputs/benchmarks/{sample}.GatherHTCVCFs.tsv",
 	shell:
 		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
-		MergeVcfs \
+		GatherVcfs \
 		-O {output.vcf} \
-		$(echo ' {input}' | sed 's/ / --INPUT /g') \
-		--CREATE_INDEX true"
+		$(echo ' {input.vcf}' | sed 's/ / --INPUT /g')"
 
+# Index the output file from GatherHTCVCFs
+rule IndexGatheredHTCVCFs:
+	input:
+		"Outputs/GatherHTCVCFs/{sample}_GatheredHTCVCFs.g.vcf.gz",
+	output:
+		temp("Outputs/GatherHTCVCFs/{sample}_GatheredHTCVCFs.g.vcf.gz.tbi"),
+	shell:
+		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
+		IndexFeatureFile \
+		-F {input} \
+		-O {output}"
+		
 # Perform joint genotyping
-# The cat input substitution can probably be done smoother somehow, it's necessary due to the use of glob()
 rule GenotypeGVCFs:
 	input:
 		fasta = config[refversion]['fasta'],
-		flag = "Outputs/MakeContigBeds/flag",
-		vcf = "Outputs/GatherVCFs/{sample}_GatheredVCFs.g.vcf.gz",
+		flag = "Outputs/MakeContigBeds/placeholder",
+		vcf = "Outputs/GatherHTCVCFs/{sample}_GatheredHTCVCFs.g.vcf.gz",
+		tbi = "Outputs/GatherHTCVCFs/{sample}_GatheredHTCVCFs.g.vcf.gz.tbi",
 		contigs = lambda wcs: glob.glob('Outputs/MakeContigBeds/contigs_%s.bed' % wcs.contigs),
 	output:
 		vcf = temp("Outputs/GenotypeGVCFs/{sample}_{contigs}_genotypes.g.vcf.gz"),
+		tbi = temp("Outputs/GenotypeGVCFs/{sample}_{contigs}_genotypes.g.vcf.gz.tbi"),
+	benchmark:
+		"Outputs/benchmarks/{sample}_{contigs}.GenotypeGVCFs.tsv",
 	shell:
-		"gatk --java-options '-Xmx3375M -Djava.io.tempdir=$(pwd)/tmp' \
+		"gatk --java-options '-Xmx3500M -Djava.io.tempdir=$(pwd)/tmp' \
 		GenotypeGVCFs \
 		-V {input.vcf} \
 		-O {output.vcf} \
@@ -352,23 +382,38 @@ rule GenotypeGVCFs:
 		$(cat {input.contigs}) \
 		--tmp-dir Outputs/GenotypeGVCFs"
 
-# Gather output files from GenotypeGVCFs
-# The input substitution with the sed pipe is a bit hacky, the previous solution \
-# relied on a run directive with python code to create the {input} definition, \
-# but due to the use of singularity this isn't possible, therefore the current bash \
-# command substitution is used.
+# The output files from GenotypeGVCFs need to be gathered into one file
+# This tool is currently unable to index the output file, the indexing tool handles that
+# The tbi input files are only used as input so that they are deleted at the right time using the temp directive
 rule GatherGenotypeGVCFs:
 	input:
-		expand("Outputs/GenotypeGVCFs/{{sample}}_{contigs}_genotypes.g.vcf.gz", 
-			contigs=CONTIGS)
+		tbi = expand("Outputs/GenotypeGVCFs/{{sample}}_{contigs}_genotypes.g.vcf.gz.tbi",
+			contigs=CONTIGS),
+		vcf = expand("Outputs/GenotypeGVCFs/{{sample}}_{contigs}_genotypes.g.vcf.gz", 
+			contigs=CONTIGS),
 	output:
-		vcf = temp("Outputs/GatherVCFs2/{sample}_GatheredVCFs2.g.vcf.gz"),
+		vcf = temp("Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz"),
+	benchmark:
+		"Outputs/benchmarks/{sample}.GatherGenotypeGVCFs.tsv",
 	shell:
 		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
-		MergeVcfs \
+		GatherVcfs \
 		-O {output.vcf} \
-		$(echo ' {input}' | sed 's/ / --INPUT /g') \
-		--CREATE_INDEX true"
+		$(echo ' {input.vcf}' | sed 's/ / --INPUT /g')"
+
+# Index the output file from GatherGenotypeGVCFs
+rule IndexGatheredGVCFs:
+	input:
+		"Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz",
+	output:
+		temp("Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz.tbi"),
+	benchmark:
+		"Outputs/benchmarks/{sample}.IndexGatheredGenotypeGVCFs.tsv",
+	shell:
+		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
+		IndexFeatureFile \
+		-F {input} \
+		-O {output}"
 
 # Build a recalibration model to score variant quality for filtering purposes
 rule VariantRecalibratorSNP:
@@ -378,10 +423,14 @@ rule VariantRecalibratorSNP:
 		dbsnp = config[refversion]['dbsnp'],
 		v1000g = config[refversion]['v1000g'],
 		hapmap = config[refversion]['hapmap'],
-		vcf = "Outputs/GatherVCFs2/{sample}_GatheredVCFs2.g.vcf.gz",
+		vcf = "Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz",
+		tbi = "Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz.tbi",
 	output:
 		recal = temp("Outputs/VariantRecalibratorSNP/{sample}_SnpVQSR.recal"),
+		idx = temp("Outputs/VariantRecalibratorSNP/{sample}_SnpVQSR.recal.idx"),
 		tranches = temp("Outputs/VariantRecalibratorSNP/{sample}_SnpVQSR.tranches"),
+	benchmark:
+		"Outputs/benchmarks/{sample}.VariantRecalibratorSNP.tsv",
 	shell:
 		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
 		VariantRecalibrator \
@@ -407,10 +456,14 @@ rule VariantRecalibratorINDEL:
 		fasta = config[refversion]['fasta'],
 		dbsnp = config[refversion]['dbsnp'],
 		mills = config[refversion]['mills'],
-		vcf = "Outputs/GatherVCFs2/{sample}_GatheredVCFs2.g.vcf.gz",
+		vcf = "Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz",
+		tbi = "Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz.tbi",
 	output:
-		recal = "Outputs/VariantRecalibratorINDEL/{sample}_IndelVQSR.recal",
-		tranches = "Outputs/VariantRecalibratorINDEL/{sample}_IndelVQSR.tranches",
+		recal = temp("Outputs/VariantRecalibratorINDEL/{sample}_IndelVQSR.recal"),
+		idx = temp("Outputs/VariantRecalibratorINDEL/{sample}_IndelVQSR.recal.idx"),
+		tranches = temp("Outputs/VariantRecalibratorINDEL/{sample}_IndelVQSR.tranches"),
+	benchmark:
+		"Outputs/benchmarks/{sample}.VariantRecalibratorINDEL.tsv",
 	shell:
 		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
 		VariantRecalibrator \
@@ -431,11 +484,15 @@ rule VariantRecalibratorINDEL:
 rule ApplyVqsrSnp:
 	input:
 		fasta = config[refversion]['fasta'],
-		vcf = "Outputs/GatherVCFs2/{sample}_GatheredVCFs2.g.vcf.gz",
 		recal = "Outputs/VariantRecalibratorSNP/{sample}_SnpVQSR.recal",
-		tranches = "Outputs/VariantRecalibratorSNP/{sample}_SnpVQSR.tranches"
+		idx = "Outputs/VariantRecalibratorSNP/{sample}_SnpVQSR.recal.idx",
+		vcf = "Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz",
+		tranches = "Outputs/VariantRecalibratorSNP/{sample}_SnpVQSR.tranches",
+		tbi = "Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz.tbi",
 	output:
 		vcf = "Outputs/ApplyVqsrSnp/{sample}_SnpApplyVQSR.g.vcf.gz",
+	benchmark:
+		"Outputs/benchmarks/{sample}.ApplyVqsrSnp.tsv",
 	shell:
 		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
 		ApplyVQSR \
@@ -452,11 +509,15 @@ rule ApplyVqsrSnp:
 rule ApplyVqsrIndel:
 	input:
 		fasta = config[refversion]['fasta'],
-		vcf = "Outputs/GatherVCFs2/{sample}_GatheredVCFs2.g.vcf.gz",
+		vcf = "Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz",
 		recal = "Outputs/VariantRecalibratorINDEL/{sample}_IndelVQSR.recal",
-		tranches = "Outputs/VariantRecalibratorINDEL/{sample}_IndelVQSR.tranches"
+		idx = "Outputs/VariantRecalibratorINDEL/{sample}_IndelVQSR.recal.idx",
+		tbi = "Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz.tbi",
+		tranches = "Outputs/VariantRecalibratorINDEL/{sample}_IndelVQSR.tranches",
 	output:
 		vcf = "Outputs/ApplyVqsrIndel/{sample}_IndelApplyVQSR.g.vcf.gz",
+	benchmark:
+		"Outputs/benchmarks/{sample}.ApplyVqsrIndel.tsv",
 	shell:
 		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
 		ApplyVQSR \

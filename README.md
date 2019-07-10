@@ -1,34 +1,41 @@
-## The current version of this readme is outdated, incomplete and incorrect, it's only a placeholder until it gets updated for real.
-# Germline Variant Calling Pipeline built in Snakemake  
+# Selma - A Germline Variant Calling Workflow built in Snakemake  
 
-The Snakefile is adapted to run inside a docker container that I prepared for the pipeline. Either download it manually with `docker pull oskarv/snakemake-germline-tools`
-or run the start script and it'll get downloaded automatically if it isn't already downloaded. Alternatively build it manually with the Dockerfile.  
+## About Selma
+Selma is a germline variant calling workflow developed at the University of Bergen. The guiding philosophy behind it is that it should be easy to setup, easy to use and that it utilizes system resources efficiently. This is achieved by adopting a user centric frame of mind that aims to simplify complex tasks without sacrificing functionality. The workflow itself is based on [Snakemake](https://snakemake.readthedocs.io/en/stable/){:target="_blank"} and all dependencies are handled by using [Docker](https://www.docker.com/){:target="_blank"} and [Singularity](https://singularity.lbl.gov/){:target="_blank"} container technology. The current intended platform is [TSD](https://www.uio.no/tjenester/it/forskning/sensitiv/){:target="_blank"} but support for [HUNT-cloud](https://www.ntnu.edu/mh/huntcloud){:target="_blank"} as well as local execution is planned for future releases.  
+Selma is named after the mythical Norwegian sea serpent that supposedly lives in [Lake Seljord](https://en.wikipedia.org/wiki/Selma_(lake_monster)){:target="_blank"}
 
-![Graphical visualization of the pipeline steps](https://github.com/elixir-no-nels/snakemake_germline/blob/master/dag.png)
+The workflow development is funded by [Elixir2](https://elixir-europe.org/){:target="_blank"}, [NorSeq](https://www.norseq.org/){:target="_blank"} and [Tryggve2](https://neic.no/tryggve/){:target="_blank"}. 
 
-# Instructions  
-Edit `scripts/start-pipeline.sh` and change the file path for `REFERENCES` to the filepath where you keep your reference files. The default reference files 
-are the hg38 reference files from the Broad Institute, they host them at their public ftp server here:  
-ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle  
-There is no password. You can automatically download the hg38 folder with this command:  
-`wget -m ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38`  
+#### Graphical visualization of the workflow steps
+![Graphical visualization of the workflow steps](https://raw.githubusercontent.com/elixir-no-nels/Selma/master/.simplifieddag.png)
+###### This is a simplified graph portraying the key steps that the workflow goes through, [this](https://raw.githubusercontent.com/elixir-no-nels/Selma/master/.completedag.png){:target="_blank"} is a complete overview including every single step. The steps that have been left out only perform "administrative" functions and don't add to the data analysis per se.
 
-If you haven't indexed the fasta file with bwa you must do that before you run the pipeline.  
+### Documentation
+* [TSD-instructions](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md){:target="_blank"}  
+* [Instructions for local use](https://github.com/elixir-no-nels/Selma/blob/master/docs/instructions-for-local-use.md){:target="_blank"}  
+* [Developer-instructions](https://github.com/elixir-no-nels/Selma/blob/master/docs/developer-instructions.md){:target="_blank"}  
 
-Run the pipeline with `sh scripts/start-pipeline.sh` to run it in the oskarv/snakemake-germline-tools docker container with snakemake, bwa, samtools and 
-gatk installed.  
-You can also run it locally with `snakemake -j`, just edit the relevant paths in the script and make sure all tools are installed locally.  
-Singularity is not supported due to the use of "run:", the Singularity directive is only allowed with shell, script or wrapper directives.
+### Tools
+[bwa](http://bio-bwa.sourceforge.net/bwa.shtml){:target="_blank"} version 0.7.15-2+deb9u1 - Maps fastq file to reference genome  
+[samtools](http://www.htslib.org/doc/samtools.html){:target="_blank"} version 1.3.1-3 - bwa pipes its output to samtools to make a bam output file  
+The following tools are all [gatk](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/){:target="_blank"} version 4.1.2.0  
+[SplitIntervals](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_SplitIntervals.php){:target="_blank"} - Splits interval list for scatter gather parallelization  
+[FastqToSam](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_FastqToSam.php){:target="_blank"} - Converts fastq files to unmapped bam files  
+[MergeBamAlignment](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_MergeBamAlignment.php){:target="_blank"} - Merge aligned BAM file from bwa with the unmapped BAM file from FastqToSam  
+[MarkDuplicates](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_markduplicates_MarkDuplicates.php){:target="_blank"} - Identifies duplicate reads  
+[BaseRecalibrator](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_bqsr_BaseRecalibrator.php){:target="_blank"} - Generates recalibration table for Base Quality Score Recalibration  
+[GatherBQSRReports](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_bqsr_GatherBQSRReports.php){:target="_blank"} - Gather base recalibration files from BaseRecalibrator  
+[ApplyBQSR](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_bqsr_ApplyBQSR.php){:target="_blank"} - Apply base recalibration from BaseRecalibrator  
+[GatherBamFiles](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_GatherBamFiles.php){:target="_blank"} - Concatenate efficiently BAM files from ApplyBQSR  
+[HaplotypeCaller](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_haplotypecaller_HaplotypeCaller.php){:target="_blank"} - Call germline SNPs and indels via local re-assembly of haplotypes  
+[GenotypeGVCFs](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_GenotypeGVCFs.php){:target="_blank"} - Perform genotyping on one pre-called sample from HaplotypeCaller  
+[VariantRecalibrator](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_vqsr_VariantRecalibrator.php){:target="_blank"} - Build a recalibration model to score variant quality for filtering purposes  
+[ApplyVQSR](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_vqsr_ApplyVQSR.php){:target="_blank"} -  Apply a score cutoff to filter variants based on a recalibration table
 
-## Hardware requirements and optimizations  
-At the current state the pipeline is highly optimized for use on a single server with 16 thread, 64GB RAM and at least 500GB storage assuming that there are 8 
-fastq.gz files totalling 51GB with ~30x coverage. But when using the test files 
-in the fastq folder it should run on any laptop using 2 threads and 8GB RAM, but 
-preferrably 4 threads and 16GB RAM, the storage requirements apart from the 
-reference files is negligible.  
-The run time on my current test machine that has 16 threads and 64 GB RAM has 
-been between 16 hours and 14 minutes to 16 hours and 25 minutes with 8 fastq.gz 
-file pairs totalling ~51GB/30x coverage.  
-The execution time on a server with 16 threads and 16 GB RAM is roughly 18 hours 
-and 30 minutes if each scatter gather tool is given 2GB RAM each and using the 
-same input files as above.  
+
+### Credits  
+**Supervisor**  
+[Kjell Petersen](mailto:kjell.petersen@uib.no)
+
+**Main developer**  
+[Oskar Vidarsson](mailto:oskar.vidarsson@uib.no)
