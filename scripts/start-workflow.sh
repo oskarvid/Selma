@@ -15,7 +15,6 @@ trap die ERR SIGTERM SIGINT
 # Print the Selma ascii serpent
 selma-ascii
 
-exit
 # Function that gives the user troubleshooting information and attempts to clean up stray files so as not to litter the intermediary workflow directory
 die () {
 	printf "#########################################\n"

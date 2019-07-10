@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#SBATCH --job-name=GVCP
+#SBATCH --job-name=Selma
 #SBATCH --account=p172
 #SBATCH --time=00-25:00:00
 #SBATCH --mem-per-cpu=3750
@@ -14,7 +14,7 @@ source slurm-settings.conf
 module purge
 module load singularity/2.5.1
 
-trap die ERR SIGINT SIGTERM 
+trap die ERR SIGINT SIGTERM
 
 die () {
         printf "\n\n#########################################\n"
