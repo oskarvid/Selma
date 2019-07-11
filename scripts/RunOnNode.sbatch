@@ -9,7 +9,7 @@
 set -Eeou #xtrace
 
 source /cluster/bin/jobsetup
-source slurm-settings.conf
+source $WFDIR/settings/slurm-settings.conf
 
 module purge
 module load singularity/2.5.1
@@ -50,6 +50,7 @@ DECOY=$(singularity exec \
 -B $REFERENCES:/references \
 -W $(pwd) \
 singularity/snakemake-germline-tools.simg snakemake -j --config version=$HGVER interval=$INTERVAL) &
+
 # Signal that snakemake started
 touch $WFDIR/sing-start.txt
 printf "Snakemake workflow started\n"

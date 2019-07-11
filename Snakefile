@@ -6,7 +6,7 @@ import glob
 workdir: 'workspace'
 
 # Read functions.smk file to define the functions that are used to create the read group and select input files
-include: 'functions.smk'
+include: 'scripts/functions.smk'
 
 # Define path for the config file
 configfile: 'config.yaml'

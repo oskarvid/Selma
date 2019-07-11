@@ -6,8 +6,8 @@ set -Ee
 
 #source $(dirname $0)/functions.sh
 #source $(dirname $0)/config.sh
-source functions.sh
-source settings.conf
+source scripts/functions.sh
+source settings/settings.conf
 
 # Run the die function to clean up files and give some troubleshooting help in case the workflow is killed or fails for some reason
 trap die ERR SIGTERM SIGINT
@@ -184,7 +184,7 @@ else
 fi
 
 # Make fresh copy of the workflow directory in case multiple executions of the workflow are started simultaneously
-inf "Copying $WFDIR to intermediary working directory: $STAGINGDIR/$WFDIRNAME-$DATE\n"
+inf "Copying $WFDIR to staging directory: $STAGINGDIR/$WFDIRNAME-$DATE\n"
 rprog $WFDIR/ $STAGINGDIR/$WFDIRNAME-$DATE
 
 # Copy TSV file to $STAGINGDIR/$WFDIR-$DATE/workspace/samples.tsv
@@ -202,7 +202,7 @@ HGVER=$HGVER,\
 REFERENCES=$REFERENCES,\
 INTERVAL=$INTERVAL,\
 WFDIR=$STAGINGDIR/$WFDIRNAME-$DATE \
-RunOnNode.sbatch | awk '{ print $4 }')
+scripts/RunOnNode.sbatch | awk '{ print $4 }')
 
 if [[ $SLURMID == '' ]]; then
 	err "The job did not get submitted to slurm, check the sbatch command."
@@ -250,7 +250,7 @@ while true; do
 		SGSTARTNOCHECK=1
 
 	elif [[ $SGNOCHECK == 0 && -e $SINGDONE ]]; then
-		succ "Data analysis has finished, initiating output file transfer to intermediate storage"
+		succ "Data analysis has finished, initiating output file transfer to staging directory"
 		SGNOCHECK=1
 
 	elif [[ -e $JOBSUCCESS ]]; then
@@ -321,9 +321,9 @@ rprog $WFDIR/slurm-$SLURMID.out ${OUTPUTDIR}/$WFDIRNAME-$DATE/slurm-$SLURMID.out
 #####################
 
 # Clean up any intermediary files
-inf "Attempting to delete intermediary working directory: $STAGINGDIR/$WFDIRNAME-$DATE"
+inf "Attempting to delete staging directory: $STAGINGDIR/$WFDIRNAME-$DATE"
 rm -r $STAGINGDIR/$WFDIRNAME-$DATE && \
-succ "Intermediary working directory $STAGINGDIR/$WFDIRNAME-$DATE has been deleted\n"
+succ "Staging directory $STAGINGDIR/$WFDIRNAME-$DATE has been deleted\n"
 
 # All done!
 if [[ ! -z "$(ls "${OUTPUTDIR}/$WFDIRNAME-$DATE")" ]]; then
