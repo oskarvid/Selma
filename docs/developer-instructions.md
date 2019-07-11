@@ -20,13 +20,13 @@ cd Selma
 When the Singularity image has been built, make a `.tar.gz` archive of the Selma directory like so:
 ```bash
 cd ../
-tar -zcvf Selma.tar.gz Selma/
+tar -zcvf Selma-$(date +%F).tar.gz Selma/
 ```
-Then use your [preferred method](https://www.uio.no/english/services/it/research/sensitive-data/use-tsd/import-export/) to copy the `Selma.tar.gz` archive to TSD.  
+Then use your [preferred method](https://www.uio.no/english/services/it/research/sensitive-data/use-tsd/import-export/) to upload the `Selma-2019-01-01.tar.gz` archive to TSD.  
 Once it has been copied to TSD, run the following steps:  
 ```bash
 mv /tsd/shared/bioinformatics/workflows/Selma /tsd/shared/bioinformatics/workflows/Selma_backup
-tar -zxvf Selma.tar.gz -C /tsd/shared/bioinformatics/workflows/
+tar -zxvf Selma-2019-01-01.tar.gz -C /tsd/shared/bioinformatics/workflows/
 ```
 This will only work if you have write permission to the `/tsd/shared/bioinformatics/` directory.
 ### Downloading and indexing reference files  
@@ -76,7 +76,7 @@ It will run the following steps:
   * bwa index on the fasta files  
 
 ### Copy the reference files to TSD
-We suggest that you make a tar archive of the reference file directories before you upload them to TSD.
+A suggestion is that you make a `tar.gz` archive of the reference file directories before you upload them to TSD.
 ```bash
 cd /path/to/directory/with/hg38orb37
 tar -zcvf hg38.tar.gz hg38
@@ -85,11 +85,11 @@ tar -zcvf b37.tar.gz b37
 Then you can upload the reference file archives to TSD with your [preferred method](https://www.uio.no/english/services/it/research/sensitive-data/use-tsd/import-export/).  
 Once the reference file archives have been uploaded to TSD, untar them like so:
 ```bash
-cd /tsd/pXX/data/durable/file-import/
+cd /tsd/pXX/data/durable/file-import/pXX-member-group
 tar -zxvf hg38.tar.gz -C /tsd/shared/bioinformatics/reference-data/
 tar -zxvf b37.tar.gz -C /tsd/shared/bioinformatics/reference-data/
 ```
-Don't forget to delete the tar archives in the file-import directory when you're done. 
+Don't forget to delete the tar archives in the `file-import/pXX-member-group/` directory when you're done. 
 
 ## Hardware requirements and optimizations  
 The workflow should be able to run on a single server with 16 thread, 64GB RAM and at least 500GB storage assuming that there are 8 fastq.gz files totalling 51GB with ~30x coverage. When using the test files in the fastq folder it should run on any laptop using 2 threads and 8GB RAM, but preferrably 4 threads and 16GB RAM, the storage requirements apart from the reference files is negligible.  

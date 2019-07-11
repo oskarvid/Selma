@@ -12,7 +12,7 @@ Or use [this](https://raw.githubusercontent.com/elixir-no-nels/Selma/master/samp
 Populate the columns with appropriate information, then save the file and name it `my-samples.tsv` or something suitable. Remember to tab separate the columns.  
 Assuming you already have the input files ready, and that the output directory exists, you can now start the workflow as such:  
 ```bash 
-./start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs -r hg38
+./scripts/start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs -r hg38
 ```
 This will use hg38 reference files, you can also use b37 reference files.
 
@@ -28,7 +28,7 @@ This will copy the b37 (-b) and hg38 (-g) to the `/cluster/projects/p172/Selma-r
 
 ### Configuring directory paths
 #### Reference files
-There is a file named `settings.conf` in the workflow directory that you need to edit and put the correct directory path to the reference file directories as well as the staging directory. You need to use a directory that is readable by Colossus, a suggestion is `/cluster/projects/p172` because any directory on the `/cluster/projects/pXX` disk is readable by Colossus. The hg38 and b37 reference file directories need to be located in the same directory like this:
+You need to edit the `settings/settings.conf` file with the correct directory path to the reference file directories as well as the staging directory. You need to use a directory that is readable by Colossus, a suggestion is `/cluster/projects/p172` because any directory on the `/cluster/projects/pXX` disk is readable by Colossus. The hg38 and b37 reference file directories need to be located in the same directory like this:
 ```bash
 /cluster/projects/p172/Selma-references/
 ├── b37
@@ -36,10 +36,10 @@ There is a file named `settings.conf` in the workflow directory that you need to
 └── hg38
     └── files
 ```
-In this case you would put `REFERENCES=/cluster/projects/p172/Selma-references/` in the `settings.conf` file.
+In this case you would put `REFERENCES=/cluster/projects/p172/Selma-references/` in the `settings/settings.conf` file.
 
 #### File staging directory
-Next up is setting the file staging directory in the `settings.conf` file. This is where Selma will do all the preparation steps before starting the actual workflow on Colossus, and this is also where the output files from the finished Colossus data analysis will end up temporarily before being sent to the final storage directory that you define with the `-o` option when you start the workflow. The directory needs to be on a disk that is writeable by Colossus, so using something like `FILESTAGING=/cluster/projects/p172/Selma-staging` is a suggestion.  
+Next up is setting the file staging directory in the `settings/settings.conf` file. This is where Selma will do all the preparation steps before starting the actual workflow on Colossus, and this is also where the output files from the finished Colossus data analysis will end up temporarily before being sent to the final storage directory that you define with the `-o` option when you start the workflow. The directory needs to be on a disk that is writeable by Colossus, so using something like `FILESTAGING=/cluster/projects/p172/Selma-staging` is a suggestion.  
 
 Now that the configuration files have been edited, you should consider optionally making the Selma files read only so that you don't risk overwriting them in the future. If this is desireable you can run the following commands:  
 ```bash
@@ -62,7 +62,7 @@ Your input data in this thought experiment is located in `/tsd/p172/username/inp
     
 ```
 
-The first flag that we can set based on this information is the `-i` flag, the `-i` flag takes the input file directory as argument, in this case it will look like this `./start-workflow.sh -i /tsd/p172/username/input-data [...]`.  
+The first flag that we can set based on this information is the `-i` flag, the `-i` flag takes the input file directory as argument, in this case it will look like this `./scripts/start-workflow.sh -i /tsd/p172/username/input-data [...]`.  
 The next step is to prepare the tsv file.
 
 ### Preparing the tsv file
@@ -82,7 +82,7 @@ FlowcellX	BCD001	libBCD	L001	breast_cancer/ductal_carcinoma_R1_L001.fastq.gz	bre
 ```
 Now save the file as `my-samples.tsv` and add `-t /tsd/p172/username/input-data/my-samples.tsv` in the start command like so: 
 ```bash
-./start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv [...]
+./scripts/start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv [...]
 ```
 
 Now let's move on to the output directory.  
@@ -90,7 +90,7 @@ Now let's move on to the output directory.
 ### Set the output directory
 Begin by creating a new directory like so: `mkdir /tsd/p172/data/Selma-outputs` and simply add `-o /tsd/p172/data/Selma-outputs` to the command line like so: 
 ```bash
-./start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs [...]
+./scripts/start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs [...]
 ```
 The workflow will write the outputs to an automatically generated new uniqely named directory using the naming pattern `Selma-yyyy-mm-dd-HH-MM-SS` inside the `/tsd/p172/data/Selma-outputs` directory. 
 
@@ -104,13 +104,13 @@ If you don't know which one to choose you should probably use hg38, it's general
 
 The flag for reference version selection is `-r`, so the resulting command line so far looks like this:  
 ```bash
-./start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs -r hg38
+./scripts/start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs -r hg38
 ```
 
 And that's it! You should be able to run the workflow now by running the following:  
 ```bash
 cd /cluster/projects/p172/UiO-Cancer/
-./start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs -r hg38
+./scripts/start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs -r hg38
 ```
 This will run Selma on Colossus using the Singularity image that was built with [this](https://github.com/elixir-no-nels/Selma/blob/master/singularity/BuildSingularityImage.sh) script.
 
@@ -135,6 +135,6 @@ If you want to use a custom interval list, e.g for exome calling, the flag is `-
 And the command line:
 
 ```bash
-./start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs -r hg38 -l /put/the/actual/absolute/path/here/hg38_exome.list
+./scripts/start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs -r hg38 -l /put/the/actual/absolute/path/here/hg38_exome.list
 ```
 Supported interval list formats include `.bed`, `.intervals`, `.list` and `.interval_list`
