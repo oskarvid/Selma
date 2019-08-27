@@ -12,24 +12,24 @@ source /cluster/bin/jobsetup
 source $WFDIR/settings/slurm-settings.conf
 
 module purge
-module load singularity/2.5.1
+module load singularity/2.6.1
 
 trap die ERR SIGINT SIGTERM
 
 die () {
-        printf "\n\n#########################################\n"
-        printf "$0 failed at line $BASH_LINENO\n"
+	printf "\n\n#########################################\n"
+	printf "$0 failed at line $BASH_LINENO\n"
 	printf "Will now attempt to stop the start-workflow.sh script\n"
 	touch $WFDIR/job-failed.txt
 	printf "Created job-failed.txt flag in $WFDIR\n"
-        printf "#########################################\n"
-        exit 0
+	printf "#########################################\n"
+	exit 0
 }
 
 WFDIRBASENAME=$(basename $WFDIR)
 cd $WFDIR
 
-# Say that workflow is being copied over to the scratch disk
+# Say that the workflow is being copied over to the scratch disk
 # And then create trigger that signals that the file copy was successful
 printf "Copying $WFDIR directory to $SCRATCH\n"
 touch $WFDIR/input-file-transfer-ini.txt
