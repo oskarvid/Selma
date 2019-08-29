@@ -8,21 +8,21 @@ Then create a _tab separated file_ using the the header below and add your sampl
 ```bash
 flowcell	sample	library	lane	R1	R2
 ``` 
-Or use [this](https://raw.githubusercontent.com/elixir-no-nels/Selma/master/samples.tsv) as a template.  
+Or use [this](https:/raw.githubusercontent.com/elixir-no-nels/Selma/master/samples.tsv) as a template.  
 Populate the columns with appropriate information, then save the file and name it `my-samples.tsv` or something suitable. Remember to tab separate the columns.  
 Assuming you already have the input files ready, and that the output directory exists, you can now start the workflow as such:  
 ```bash 
-./scripts/start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs -r hg38
+./scripts/start-workflow.sh -i /tsd/p172ncspm/data/durable/input-data/ -t /tsd/p172ncspm/data/durable/input-data/my-samples.tsv -o /tsd/p172ncspm/data/durable/Selma-outputs -r hg38
 ```
 This will use hg38 reference files, you can also use b37 reference files.
 
 ## Long instructions  
 
 ### Making a clean copy of Selma and the reference files with the setup script
-Before you can run Selma for the first time you need to make a clean copy first. The suggested method is to do it with the setup script that is located in `/tsd/shared/bioinformatics/workflows/Selma/scripts/Selma-setup.sh`  
+Before you can run Selma for the first time you need to make a clean copy first. The suggested method is to do it with the setup script that is located in `/tsd/shared/bioinformatics/workflows/Selma/utilities/Selma-setup.sh`  
 It needs the directory path to where you want to put your own installation of Selma and another path for where to store the reference directories. Let's assume you want to put Selma in `/cluster/projects/p172/UiO-Cancer/` and the reference files in `/cluster/projects/p172/Selma-references/`, simply run the following command:
 ```bash
-./tsd/shared/bioinformatics/workflows/Selma/scripts/Selma-setup.sh -s /cluster/projects/p172/UiO-Cancer/ -b /cluster/projects/p172/Selma-references/ -g /cluster/projects/p172/Selma-references/
+/tsd/shared/bioinformatics/workflows/Selma/utilities/Selma-setup.sh -s /cluster/projects/p172/UiO-Cancer/ -b /cluster/projects/p172/Selma-references/ -g /cluster/projects/p172/Selma-references/
 ```
 This will copy the b37 (-b) and hg38 (-g) to the `/cluster/projects/p172/Selma-references/` directory.
 
@@ -51,9 +51,9 @@ This will keep the Selma _directory_ writeable, but the _files_ and _sub directo
 Let's continue by using a thought experiment to understand how to supply the workflow with correct options.
 
 ### Locating your input files
-Your input data in this thought experiment is located in `/tsd/p172/username/input-data`, this directory has two files and one directory that also contains two files like this:  
+Your input data in this thought experiment is located in `/tsd/p172ncspm/data/durable/input-data/`, this directory has two files and one directory that also contains two files like this:  
 ```
-/tsd/p172/username/input-data
+/tsd/p172ncspm/data/durable/input-data/
 ├── breast_cancer
 │   ├── ductal_carcinoma_R1_L001.fastq.gz
 │   └── ductal_carcinoma_R2_L001.fastq.gz
@@ -62,12 +62,12 @@ Your input data in this thought experiment is located in `/tsd/p172/username/inp
     
 ```
 
-The first flag that we can set based on this information is the `-i` flag, the `-i` flag takes the input file directory as argument, in this case it will look like this `./scripts/start-workflow.sh -i /tsd/p172/username/input-data [...]`.  
+The first flag that we can set based on this information is the `-i` flag, the `-i` flag takes the input file directory as argument, in this case it will look like this `./scripts/start-workflow.sh -i /tsd/p172ncspm/data/durable/input-data/ [...]`.  
 The next step is to prepare the tsv file.
 
 ### Preparing the tsv file
 The tsv file is used to tell the workflow which files belong to the same sample. If you want to analyse many samples at once you simply put all information per sample and file in the tsv file. The sample information is also used to create proper read groups, this will help you identify the files since this information is put in the header of the bam files by the workflow. This information is also used by the workflow to name the output files.  
-Either use the sample file [here](https://github.com/elixir-no-nels/Selma/blob/master/samples.tsv) or copy/paste the header below (remember to separate the columns with tabs!) into a new file and add your sample information below:  
+Either use the sample file [here](https:/github.com/elixir-no-nels/Selma/blob/master/samples.tsv) or copy/paste the header below (remember to separate the columns with tabs!) into a new file and add your sample information below:  
 ```bash
 flowcell	sample	library	lane	R1	R2
 ```  
@@ -80,52 +80,52 @@ flowcell	sample	library	lane	R1	R2
 FlowcellX	HA001	libHA	L001	human_adenoma_R1_L001.fastq.gz	human_adenoma_R2_L001.fastq.gz
 FlowcellX	BCD001	libBCD	L001	breast_cancer/ductal_carcinoma_R1_L001.fastq.gz	breast_cancer/ductal_carcinoma_R2_L001.fastq.gz
 ```
-Now save the file as `my-samples.tsv` and add `-t /tsd/p172/username/input-data/my-samples.tsv` in the start command like so: 
+Now save the file as `my-samples.tsv` and add `-t /tsd/p172ncspm/data/durable/input-data/my-samples.tsv` in the start command like so: 
 ```bash
-./scripts/start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv [...]
+./scripts/start-workflow.sh -i /tsd/p172ncspm/data/durable/input-data/ -t /tsd/p172ncspm/data/durable/input-data/my-samples.tsv [...]
 ```
 
 Now let's move on to the output directory.  
 
 ### Set the output directory
-Begin by creating a new directory like so: `mkdir /tsd/p172/data/Selma-outputs` and simply add `-o /tsd/p172/data/Selma-outputs` to the command line like so: 
+Begin by creating a new directory like so: `mkdir /tsd/p172ncspm/data/durable/Selma-outputs` and simply add `-o /tsd/p172ncspm/data/durable/Selma-outputs` to the command line like so: 
 ```bash
-./scripts/start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs [...]
+./scripts/start-workflow.sh -i /tsd/p172ncspm/data/durable/input-data/ -t /tsd/p172ncspm/data/durable/input-data/my-samples.tsv -o /tsd/p172ncspm/data/durable/Selma-outputs [...]
 ```
-The workflow will write the outputs to an automatically generated new uniqely named directory using the naming pattern `Selma-yyyy-mm-dd-HH-MM-SS` inside the `/tsd/p172/data/Selma-outputs` directory. 
+The workflow will write the outputs to an automatically generated new uniqely named directory using the naming pattern `Selma-yyyy-mm-dd-HH-MM-SS` inside the `/tsd/p172ncspm/data/durable/Selma-outputs` directory. 
 
 The final required step is to select the reference file version. 
 
 ### Selecting reference file version
 You have a choice of two reference file versions, either the `b37` decoy version, or the `hg38` version.
-[This article](https://arxiv.org/pdf/1404.0929.pdf) has some interesting comparisons of the b37/GRCh37 and hg38/GRCh38 reference files.
+[This article](https:/arxiv.org/pdf/1404.0929.pdf) has some interesting comparisons of the b37/GRCh37 and hg38/GRCh38 reference files.
 
 If you don't know which one to choose you should probably use hg38, it's generally more complete compared to b37 according to the article above.
 
 The flag for reference version selection is `-r`, so the resulting command line so far looks like this:  
 ```bash
-./scripts/start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs -r hg38
+./scripts/start-workflow.sh -i /tsd/p172ncspm/data/durable/input-data/ -t /tsd/p172ncspm/data/durable/input-data/my-samples.tsv -o /tsd/p172ncspm/data/durable/Selma-outputs -r hg38
 ```
 
 And that's it! You should be able to run the workflow now by running the following:  
 ```bash
 cd /cluster/projects/p172/UiO-Cancer/
-./scripts/start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs -r hg38
+./scripts/start-workflow.sh -i /tsd/p172ncspm/data/durable/input-data/ -t /tsd/p172ncspm/data/durable/input-data/my-samples.tsv -o /tsd/p172ncspm/data/durable/Selma-outputs -r hg38
 ```
-This will run Selma on Colossus using the Singularity image that was built with [this](https://github.com/elixir-no-nels/Selma/blob/master/singularity/BuildSingularityImage.sh) script.
+This will run Selma on Colossus using the Singularity image that was built with [this](https:/github.com/elixir-no-nels/Selma/blob/master/singularity/BuildSingularityImage.sh) script.
 
 ### Optional custom interval file (e.g for exome calling)
 This feature has not been quality tested yet but should in principle work as it should.  
 If you want to do exome calling you need to be certain that your interval file is compatible with the default reference files.  
 The hg38 reference files have chromosome names of the format: `chr1	chr2	chr3	etc`  
-For a complete list of contigs in the hg38 reference fasta file you can check out this .dict file: [ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.dict](ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.dict)  
+For a complete list of contigs in the hg38 reference fasta file you can check out this .dict file: [ftp:/gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.dict](ftp:/gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.dict)  
 In case it asks for password there is none, just hit enter.
 
 The b37 reference files have chromosome names like this: `1	2	3	etc`.  
-For a complete list of contigs in the b37 reference fasta file you can check out this .dict file: [ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/human_g1k_v37.dict.gz](ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/human_g1k_v37.dict.gz)  
+For a complete list of contigs in the b37 reference fasta file you can check out this .dict file: [ftp:/gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/human_g1k_v37.dict.gz](ftp:/gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/human_g1k_v37.dict.gz)  
 In case it asks for password there is none, just hit enter.
 
-There's a default hg38 and a b37 interval list that is always used for wgs calling, the intervals are made to exclude e.g centromeric regions since these regions don't add any useful information for variant calling. Here's some more information: [https://software.broadinstitute.org/gatk/documentation/article?id=11009](https://software.broadinstitute.org/gatk/documentation/article?id=11009)  
+There's a default hg38 and a b37 interval list that is always used for wgs calling, the intervals are made to exclude e.g centromeric regions since these regions don't add any useful information for variant calling. Here's some more information: [https:/software.broadinstitute.org/gatk/documentation/article?id=11009](https:/software.broadinstitute.org/gatk/documentation/article?id=11009)  
 Here's the most relevant part from that link:  
 > **Whole genomes (WGS)**  
 	For whole genome sequence, the intervals lists don’t depend on the prep (since in principle you captured the “whole genome”) so instead it depends on what regions of the genome you want to blacklist (e.g. centromeric regions that waste your time for nothing) and how the reference genome build enables you to cut up regions (separated by Ns) for scatter-gather parallelizing.  
@@ -135,6 +135,6 @@ If you want to use a custom interval list, e.g for exome calling, the flag is `-
 And the command line:
 
 ```bash
-./scripts/start-workflow.sh -i /tsd/p172/username/input-data -t /tsd/p172/username/input-data/my-samples.tsv -o /tsd/p172/data/Selma-outputs -r hg38 -l /put/the/actual/absolute/path/here/hg38_exome.list
+./scripts/start-workflow.sh -i /tsd/p172ncspm/data/durable/input-data/ -t /tsd/p172ncspm/data/durable/input-data/my-samples.tsv -o /tsd/p172ncspm/data/durable/Selma-outputs -r hg38 -l /put/the/actual/absolute/path/here/hg38_exome.list
 ```
 Supported interval list formats include `.bed`, `.intervals`, `.list` and `.interval_list`

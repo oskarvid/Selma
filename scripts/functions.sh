@@ -2,7 +2,7 @@
 
 # Function that prints help message
 usage () {
-echo "${GREEN}""Usage:${RESET} $0 [ -h ] [ -i input directory ] [ -t tsv file ] [ -o output directory ] [ -r genome version] [ -l interval file ] [ -c container version ] [ -m execution mode ] \
+echo "${GREEN}""Usage:${RESET} $0 [ -h ] [ -i input directory ] [ -t tsv file ] [ -o output directory ] [ -r genome version] [ -l interval file ] \
 
 
 -h : Print this help message \
@@ -15,7 +15,7 @@ echo "${GREEN}""Usage:${RESET} $0 [ -h ] [ -i input directory ] [ -t tsv file ] 
 
 -o : Path of the output folder, path must be absolute, required \
 
--l : Optional interval file, path must be absolute
+-l : Optional interval file, path must be absolute \
 " 1>&2; exit 0; }
 
 # Make your terminal text output beautiful <3

@@ -1,5 +1,15 @@
 #!/bin/bash
 
+if [[ ! $(which tabix) ]]; then
+	echo "tabix is missing"
+	exit
+elif [[ ! $(which samtools) ]]; then
+	echo "samtools is missing"
+	exit
+elif [[ ! $(which bwa) ]]; then
+	echo "bwa is missing"
+	exit
+fi
 # Bgzip all uncompressed vcf files
 for file in *.vcf.gz; do
 #	echo "Running bgzip on $file"

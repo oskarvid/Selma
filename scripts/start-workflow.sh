@@ -42,7 +42,7 @@ die () {
 	# Print benchmarking data
 	FINISH=$(date +%s)
 	EXECTIME=$(( $FINISH-$START ))
-	succ "Finished on $(date)"
+	inf "Exited on $(date)"
 	printf "[$(showdate)][INFO]: Workflow duration: %dd:%dh:%dm:%ds\n" $((EXECTIME/86400)) $((EXECTIME%86400/3600)) $((EXECTIME%3600/60)) $((EXECTIME%60))
 
 	if [[ -f $LOGFILE ]]; then
