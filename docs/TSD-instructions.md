@@ -39,14 +39,9 @@ You need to edit the `settings/settings.conf` file with the correct directory pa
 In this case you would put `REFERENCES=/cluster/projects/p172/Selma-references/` in the `settings/settings.conf` file.
 
 #### File staging directory
-Next up is setting the file staging directory in the `settings/settings.conf` file. This is where Selma will do all the preparation steps before starting the actual workflow on Colossus, and this is also where the output files from the finished Colossus data analysis will end up temporarily before being sent to the final storage directory that you define with the `-o` option when you start the workflow. The directory needs to be on a disk that is writeable by Colossus, so using something like `FILESTAGING=/cluster/projects/p172/Selma-staging` is a suggestion.  
-
-Now that the configuration files have been edited, you should consider optionally making the Selma files read only so that you don't risk overwriting them in the future. If this is desireable you can run the following commands:  
-```bash
-cd /cluster/projects/p172/UiO-Cancer/Selma
-chmod -R 0444 *
-```
-This will keep the Selma _directory_ writeable, but the _files_ and _sub directories_ are read only. This means you can create new files in the directory, but you cannot change the ones that are already there. Only do this if you want to save the end users from themselves.
+Next up is setting the file staging directory in the `settings/settings.conf` file. This is where Selma will do all the preparation steps before starting the actual workflow on Colossus, and this is also where the output files from the finished Colossus data analysis will end up temporarily before being sent to the final storage directory that you define with the `-o` option when you start the workflow. The directory needs to be on a disk that is writeable by Colossus, so using something like `FILESTAGING=/cluster/projects/p172/Selma-staging` is a suggestion, run `mkdir /cluster/projects/p172/Selma-staging` to create it.  
+#### Editing the sbatch file
+Now you need to edit the `scripts/RunOnNode.sbatch` file and change the `#SBATCH --account=p172` line and put your slurm account name there.
 
 Let's continue by using a thought experiment to understand how to supply the workflow with correct options.
 
