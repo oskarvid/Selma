@@ -63,14 +63,10 @@ You need to edit the `settings/settings.conf` file with the correct directory pa
 In this case you would put `REFERENCES=/cluster/projects/p172/Selma-references/` in the `settings/settings.conf` file.
 
 #### File staging directory
-Next up is setting the file staging directory in the `settings/settings.conf` file. This is where Selma will do all the preparation steps before starting the actual workflow on Colossus, and this is also where the output files from the finished Colossus data analysis will end up temporarily before being sent to the final storage directory that you define with the `-o` option when you start the workflow. The directory needs to be on a disk that is writeable by Colossus, so using something like `FILESTAGING=/cluster/projects/p172/Selma-staging` is a suggestion.  
+Next up is setting the file staging directory in the `settings/settings.conf` file. This is where Selma will do all the preparation steps before starting the actual workflow on Colossus, and this is also where the output files from the finished Colossus data analysis will end up temporarily before being sent to the final storage directory that you define with the `-o` option when you start the workflow. The directory needs to be on a disk that is writeable by Colossus, so using something like `FILESTAGING=/cluster/projects/p172/Selma-staging` is a suggestion, run `mkdir /cluster/projects/p172/Selma-staging` to create it.  
 
-Now that the configuration files have been edited, you should consider optionally making the Selma files read only so that you don't risk overwriting them in the future. If this is desireable you can run the following commands:  
-```bash
-cd /cluster/projects/p172/UiO-Cancer/Selma
-chmod -R 0444 *
-```
-This will keep the Selma _directory_ writeable, but the _files_ and _sub directories_ are read only. This means you can create new files in the directory, but you cannot change the ones that are already there. Only do this if you want to save the end users from themselves.
+#### Editing the sbatch file
+Now you need to edit the `scripts/RunOnNode.sbatch` file and change the `#SBATCH --account=p172` line and put your slurm account name there.
 
 Let's continue by using a thought experiment to understand how to supply the workflow with correct options.
 
@@ -138,9 +134,9 @@ cd /cluster/projects/p172/UiO-Cancer/
 ```
 This will run Selma on Colossus using the Singularity image that was built with [this](https:/github.com/elixir-no-nels/Selma/blob/master/singularity/BuildSingularityImage.sh) script.
 
-### Optional custom interval file (e.g for exome calling)
+### Optional custom interval file
 This feature has not been quality tested yet but should in principle work as it should.  
-If you want to do exome calling you need to be certain that your interval file is compatible with the default reference files.  
+If you want to do use a custom interval list you need to be certain that your interval file is compatible with the default reference files.  
 The hg38 reference files have chromosome names of the format: `chr1	chr2	chr3	etc`  
 For a complete list of contigs in the hg38 reference fasta file you can check out this .dict file: [ftp:/gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.dict](ftp:/gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.dict)  
 In case it asks for password there is none, just hit enter.
