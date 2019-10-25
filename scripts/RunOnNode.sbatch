@@ -1,27 +1,20 @@
 #!/bin/bash
-#
-#SBATCH --job-name=Selma
-#SBATCH --account=p172
-#SBATCH --time=00-25:00:00
-#SBATCH --mem-per-cpu=3750
-#SBATCH --cpus-per-task=16
 
 set -Eeou #xtrace
 
 source /cluster/bin/jobsetup
-source $WFDIR/settings/slurm-settings.conf
 
 module purge
-module load singularity/2.5.1
+module load singularity/2.6.1
 
 trap die ERR SIGINT SIGTERM
 
 die () {
         printf "\n\n#########################################\n"
         printf "$0 failed at line $BASH_LINENO\n"
-	printf "Will now attempt to stop the start-workflow.sh script\n"
-	touch $WFDIR/job-failed.txt
-	printf "Created job-failed.txt flag in $WFDIR\n"
+		printf "Will now attempt to stop the start-workflow.sh script\n"
+		touch $WFDIR/job-failed.txt
+		printf "Created job-failed.txt flag in $WFDIR\n"
         printf "#########################################\n"
         exit 0
 }
@@ -32,10 +25,10 @@ cd $WFDIR
 # Say that workflow is being copied over to the scratch disk
 # And then create trigger that signals that the file copy was successful
 printf "Copying $WFDIR directory to $SCRATCH\n"
-touch $WFDIR/input-file-transfer-ini.txt
+touch $WFDIR/input-file-transfer-ini-$STAMP.txt
 rsync -ah --progress $WFDIR $SCRATCH && \
 printf "File transfer from $WFDIR to $SCRATCH was successful, creating file transfer trigger in $WFDIR to signal the file transfer success\n"
-touch $WFDIR/input-file-transfer-succ.txt
+touch $WFDIR/input-file-transfer-succ-$STAMP.txt
 
 ## cd to the execute node to run the job from /scratch
 cd $SCRATCH/$WFDIRBASENAME
@@ -52,14 +45,14 @@ DECOY=$(singularity exec \
 singularity/snakemake-germline-tools.simg snakemake -j --config version=$HGVER interval=$INTERVAL) &
 
 # Signal that snakemake started
-touch $WFDIR/sing-start.txt
+touch $WFDIR/sing-start-$STAMP.txt
 printf "Snakemake workflow started\n"
 
 # Wait until the singularity process has exited
 wait
 
 # Create trigger that signals that the singularity job has exited
-touch $WFDIR/sing-done.txt
+touch $WFDIR/sing-done-$STAMP.txt
 printf "Snakemake workflow is finished\n"
 
 # Copy files back to the output directory
@@ -70,7 +63,7 @@ printf "File transfer to $SCRATCH/$WFDIRBASENAME/$WFOUTPUTS was successful, crea
 # Create file transfer trigger so that the start-workflow.sh script can move the
 # files from $INTERMEDSTOR/$WFDIRNAME-$DATE/$WFOUTPUTS to $OUTPUTDIR/$WFDIRNAME-$DATE
 # These variables are found in the start-workflow.sh script
-touch $WFDIR/job-success.txt
+touch $WFDIR/job-success-$STAMP.txt
 
 # All done!
 printf "Slurm execution all done!\n"

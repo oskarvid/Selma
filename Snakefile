@@ -1,6 +1,9 @@
 # Import modules for tsv file handling and globbing of certain output files
 import pandas as pd
 import glob
+import sys
+import os
+import shutil
 
 # Change the working directory to 'workspace' to separate code from input and output files
 workdir: 'workspace'
@@ -18,10 +21,6 @@ refversion = config['version']
 interval = config['interval']
 
 # The following variables are used to select interval files and create output file names
-CONTIGCOUNT = config[refversion]['contigfiles']
-CONTIGS = range(1, CONTIGCOUNT)
-GATHERCONTIGS = range(1, (( CONTIGCOUNT + 1 )))
-
 SCATTERCOUNT = config['scattercount']
 DIRECTORIES=[]
 for i in range(SCATTERCOUNT):
@@ -31,6 +30,40 @@ for i in range(SCATTERCOUNT):
 samples = pd.read_csv(config["samples"], sep='\t', dtype=str).set_index(["flowcell", "sample", "lane"], drop=False)
 samples.index = samples.index.set_levels([i.astype(str) for i in samples.index.levels]) # enforce str in index
 
+# The following lines are used to dynamically set the CONTIGS variable
+# The CONTIGS variable is only a range of values that are used to run BaseRecalibrator, ApplyBQSR and 
+# GenotypeGVCFs in scatter/gather mode
+ref_dict = config[refversion]['dict']
+
+# Make a list of all contigs, extract the lengths, find the longest one
+with open(ref_dict, "r") as ref_dict_file:
+    sequence_tuple_list = []
+    longest_sequence = 0
+    for line in ref_dict_file:
+        if line.startswith("@SQ"):
+            line_split = line.split("\t")
+            sequence_tuple_list.append((line_split[1].split("SN:")[1], int(line_split[2].split("LN:")[1])))
+    longest_sequence = sorted(sequence_tuple_list, key=lambda x: x[1], reverse=True)[0][1]
+
+# Initialize the tsv string
+string = " "
+
+# Initialize variable for determination of total length of combined contig lengths
+temp_size = sequence_tuple_list[0][1]
+
+# For loop and conditional that goes through each contig and checks the combined length of the 
+# contig lengths to create groups that are roughly the same length
+for sequence_tuple in sequence_tuple_list[1:]:
+    if temp_size + sequence_tuple[1] <= longest_sequence:
+        temp_size += sequence_tuple[1]
+    else:
+        string += "\n"
+        temp_size = sequence_tuple[1]
+
+# add a final last line to "add" the unmapped contig job as well
+string += "\n"
+CONTIGS = range(1, len(string.splitlines()))
+
 rule all:
 	input:
 		expand("Outputs/ApplyVqsrSnp/{sample}_SnpApplyVQSR.g.vcf.gz", 
@@ -38,38 +71,13 @@ rule all:
 		expand("Outputs/ApplyVqsrIndel/{sample}_IndelApplyVQSR.g.vcf.gz", 
 			sample=samples['sample']),
 
-# This rule creates a tsv file with the contigs grouped into roughly equal combined lengths.
-# The script should be improved to create a separate file per group so as to avoid the need
-# for the MakeTSVs.sh script which performs this function
-rule MakeSequenceGroupings:
-	input:
-		config[refversion]['dict'],
-	output:
-		temp("Outputs/MakeContigBeds/sequence_grouping_with_unmapped.tsv"),
-	priority:
-		30
-	shell:
-		"python2 scripts/split-bedfile.py {input} Outputs/MakeContigBeds/"
-
-# Split the sequenc_grouping_with_unmapped.tsv file into one file per line
-# This script should be made osbolete by performin its function in the split-bedfile.py instead
-rule MakeContigBeds:
-	input:
-		"Outputs/MakeContigBeds/sequence_grouping_with_unmapped.tsv"
-	output:
-		flag = touch("Outputs/MakeContigBeds/flag"),
-	priority:
-		30
-	shell:
-		"bash scripts/MakeTSVs.sh {input} Outputs/MakeContigBeds/"
-
 # Split the interval list for HaplotypeCaller into sub intervals for scatter gather execution
 rule MakeIntervalLists:
 	input:
 		interval = interval,
 		fasta = config[refversion]['fasta'],
 	output:
-		temp("Outputs/MakeIntervalLists/{split}-scattered.interval_list"),
+		"Outputs/MakeIntervalLists/{split}-scattered.interval_list",
 	priority:
 		30
 	shell:
@@ -134,8 +142,7 @@ rule FastqtoSam:
 		--PLATFORM_UNIT '{params.flowcell}.{params.lane}.{params.sample}' \
 		--TMP_DIR {output.tmp}"
 
-# Due to the usage of the MarkDupCheckpoint below it is not possible to flag the bam
-# file from MergeBamAlignment as temp(), this seems like a bug
+# Merge output files from bwa and FastqToSam
 rule MergeBamAlignment:
 	input:
 		fasta = config[refversion]['fasta'],
@@ -170,8 +177,7 @@ rule MergeBamAlignment:
 		--PROGRAM_GROUP_COMMAND_LINE 'bwa mem -t 15 -R -M Input1 Input2 > output.sam' \
 		--TMP_DIR {output.tmp}"
 
-# It would have been convenient to make MergeBamAlignment the checkpoint
-# but it wouldn't recognize it for some reason, hence the checkpoint rule below.
+# Checkpoint so that MarkDuplicates can find the output files from MergeBamAlignment
 checkpoint MarkDupCheckpoint:
 	input:
 		expand("Outputs/MergeBamAlignment/{sample}_{lane}_{flowcell}.merged.bam", zip,
@@ -206,6 +212,17 @@ rule MarkDup:
 		$(echo ' {input.files}' | sed 's/ / --INPUT /g') \
 		--TMP_DIR {output.tmp}"
 
+# This rule creates bed files with the contigs grouped into roughly equal lengths for each file.
+rule MakeSequenceGroupings:
+	input:
+		config[refversion]['dict'],
+	output:
+		touch("Outputs/MakeContigBeds/flag"),
+	priority:
+		30
+	shell:
+		"python2 scripts/split-bedfile.py {input} Outputs/MakeContigBeds/"
+
 # Run checkpoint so that glob() in BaseRecalibrator finds the input files
 checkpoint BaseRecalibratorCheckpoint:
 	input:
@@ -229,7 +246,7 @@ rule BaseRecalibrator:
 	threads:
 		1
 	output:
-		grp = temp("Outputs/BaseRecalibrator/{sample}_BQSR_{contigs}.grp"),
+		grp = "Outputs/BaseRecalibrator/{sample}_BQSR_{contigs}.grp",
 	benchmark:
 		"Outputs/benchmarks/{sample}_{contigs}.BaseRecalibrator.tsv",
 	shell:
@@ -250,7 +267,7 @@ rule GatherBQSRReports:
 		expand("Outputs/BaseRecalibrator/{{sample}}_BQSR_{directory}.grp",
 			directory=CONTIGS),
 	output:
-		temp("Outputs/GatherBQSR/{sample}_GatheredBQSR.grp")
+		"Outputs/GatherBQSR/{sample}_GatheredBQSR.grp"
 	shell:
 		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
 		GatherBQSRReports \
@@ -267,8 +284,8 @@ rule ApplyBQSR:
 		bai = "Outputs/MarkDuplicates/{sample}_markedDuplicates.bai",
 		contigs = lambda wcs: glob.glob('Outputs/MakeContigBeds/contigs_%s.bed' % wcs.con),
 	output:
-		bam = temp("Outputs/ApplyBQSR/{sample}_{con}_recalibrated.bam"),
-		bai = temp("Outputs/ApplyBQSR/{sample}_{con}_recalibrated.bai"),
+		bam = "Outputs/ApplyBQSR/{sample}_{con}_recalibrated.bam",
+		bai = "Outputs/ApplyBQSR/{sample}_{con}_recalibrated.bai",
 	benchmark:
 		"Outputs/benchmarks/{sample}_{con}.ApplyBQSR.tsv",
 	shell:
@@ -285,10 +302,10 @@ rule ApplyBQSR:
 # Merge bam files from ApplyBQSR into one
 rule GatherApplyBQSRbams:
 	input:
-		bai = expand("Outputs/ApplyBQSR/{{sample}}_{con}_recalibrated.bai",
-			con=GATHERCONTIGS),
-		bam = expand("Outputs/ApplyBQSR/{{sample}}_{con}_recalibrated.bam",
-			con=GATHERCONTIGS),
+		bai = expand("Outputs/ApplyBQSR/{{sample}}_{contigs}_recalibrated.bai",
+			contigs=CONTIGS),
+		bam = expand("Outputs/ApplyBQSR/{{sample}}_{contigs}_recalibrated.bam",
+			contigs=CONTIGS),
 	output:
 		bam = "Outputs/GatherBamFiles/{sample}_GatheredABQSRFiles.bam",
 		bai = "Outputs/GatherBamFiles/{sample}_GatheredABQSRFiles.bai",
@@ -313,8 +330,8 @@ rule HaplotypeCaller:
 		bai = "Outputs/GatherBamFiles/{sample}_GatheredABQSRFiles.bai",
 		intervals = "Outputs/MakeIntervalLists/{split}-scattered.interval_list",
 	output:
-		vcf = temp("Outputs/HaplotypeCaller/{sample}_{split}_rawVariants.g.vcf.gz"),
-		tbi = temp("Outputs/HaplotypeCaller/{sample}_{split}_rawVariants.g.vcf.gz.tbi"),
+		vcf = "Outputs/HaplotypeCaller/{sample}_{split}_rawVariants.g.vcf.gz",
+		tbi = "Outputs/HaplotypeCaller/{sample}_{split}_rawVariants.g.vcf.gz.tbi",
 	benchmark:
 		"Outputs/benchmarks/{sample}_{split}.HaplotypeCaller.tsv",
 	threads:
@@ -330,8 +347,7 @@ rule HaplotypeCaller:
 		--tmp-dir Outputs/HaplotypeCaller"
 
 # The output files from HaplotypeCaller need to be gathered into one file
-# This tool is currently unable to index the output file, the indexing tool handles that
-# The tbi input files are only used as input so that they are deleted at the right time using the temp directive
+# This tool is currently unable to index the output file, the indexing tool below handles that
 rule GatherHTCVCFs:
 	input:
 		vcf = expand("Outputs/HaplotypeCaller/{{sample}}_{split}_rawVariants.g.vcf.gz", 
@@ -339,7 +355,7 @@ rule GatherHTCVCFs:
 		tbi = expand("Outputs/HaplotypeCaller/{{sample}}_{split}_rawVariants.g.vcf.gz.tbi",
 			split=DIRECTORIES),
 	output:
-		vcf = temp("Outputs/GatherHTCVCFs/{sample}_GatheredHTCVCFs.g.vcf.gz"),
+		vcf = "Outputs/GatherHTCVCFs/{sample}_GatheredHTCVCFs.g.vcf.gz",
 	benchmark:
 		"Outputs/benchmarks/{sample}.GatherHTCVCFs.tsv",
 	shell:
@@ -353,7 +369,7 @@ rule IndexGatheredHTCVCFs:
 	input:
 		"Outputs/GatherHTCVCFs/{sample}_GatheredHTCVCFs.g.vcf.gz",
 	output:
-		temp("Outputs/GatherHTCVCFs/{sample}_GatheredHTCVCFs.g.vcf.gz.tbi"),
+		"Outputs/GatherHTCVCFs/{sample}_GatheredHTCVCFs.g.vcf.gz.tbi",
 	shell:
 		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
 		IndexFeatureFile \
@@ -367,12 +383,12 @@ rule GenotypeGVCFs:
 		flag = "Outputs/MakeContigBeds/placeholder",
 		vcf = "Outputs/GatherHTCVCFs/{sample}_GatheredHTCVCFs.g.vcf.gz",
 		tbi = "Outputs/GatherHTCVCFs/{sample}_GatheredHTCVCFs.g.vcf.gz.tbi",
-		contigs = lambda wcs: glob.glob('Outputs/MakeContigBeds/contigs_%s.bed' % wcs.contigs),
+		contigs = lambda wcs: glob.glob('Outputs/MakeContigBeds/contigs_%s.bed' % wcs.con),
 	output:
-		vcf = temp("Outputs/GenotypeGVCFs/{sample}_{contigs}_genotypes.g.vcf.gz"),
-		tbi = temp("Outputs/GenotypeGVCFs/{sample}_{contigs}_genotypes.g.vcf.gz.tbi"),
+		vcf = "Outputs/GenotypeGVCFs/{sample}_{con}_genotypes.g.vcf.gz",
+		tbi = "Outputs/GenotypeGVCFs/{sample}_{con}_genotypes.g.vcf.gz.tbi",
 	benchmark:
-		"Outputs/benchmarks/{sample}_{contigs}.GenotypeGVCFs.tsv",
+		"Outputs/benchmarks/{sample}_{con}.GenotypeGVCFs.tsv",
 	shell:
 		"gatk --java-options '-Xmx3500M -Djava.io.tempdir=$(pwd)/tmp' \
 		GenotypeGVCFs \
@@ -383,8 +399,7 @@ rule GenotypeGVCFs:
 		--tmp-dir Outputs/GenotypeGVCFs"
 
 # The output files from GenotypeGVCFs need to be gathered into one file
-# This tool is currently unable to index the output file, the indexing tool handles that
-# The tbi input files are only used as input so that they are deleted at the right time using the temp directive
+# This tool is currently unable to index the output file, the indexing tool below handles that
 rule GatherGenotypeGVCFs:
 	input:
 		tbi = expand("Outputs/GenotypeGVCFs/{{sample}}_{contigs}_genotypes.g.vcf.gz.tbi",
@@ -392,7 +407,7 @@ rule GatherGenotypeGVCFs:
 		vcf = expand("Outputs/GenotypeGVCFs/{{sample}}_{contigs}_genotypes.g.vcf.gz", 
 			contigs=CONTIGS),
 	output:
-		vcf = temp("Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz"),
+		vcf = "Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz",
 	benchmark:
 		"Outputs/benchmarks/{sample}.GatherGenotypeGVCFs.tsv",
 	shell:
@@ -406,7 +421,7 @@ rule IndexGatheredGVCFs:
 	input:
 		"Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz",
 	output:
-		temp("Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz.tbi"),
+		"Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz.tbi",
 	benchmark:
 		"Outputs/benchmarks/{sample}.IndexGatheredGenotypeGVCFs.tsv",
 	shell:
