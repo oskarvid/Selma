@@ -136,7 +136,8 @@ This will run Selma on Colossus using the Singularity image that was built with 
 
 ### Optional custom interval file
 This feature has not been quality tested yet but should in principle work as it should.  
-If you want to do use a custom interval list you need to be certain that your interval file is compatible with the default reference files.  
+Note that using an exome interval file risks reducing the total interval length to such a small amount of data that the workflow does not finish, this is true for any interval file too. The tools are made for germline variant calling so using an exome interval list should only be done if you are aware of this.  
+If you want to use a custom interval list you need to be certain that your interval file is compatible with the default reference files.  
 The hg38 reference files have chromosome names of the format: `chr1	chr2	chr3	etc`  
 For a complete list of contigs in the hg38 reference fasta file you can check out this .dict file: [ftp:/gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.dict](ftp:/gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Homo_sapiens_assembly38.dict)  
 In case it asks for password there is none, just hit enter.
