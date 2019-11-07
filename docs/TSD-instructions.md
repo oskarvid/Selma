@@ -7,28 +7,28 @@ First of all you need to ssh into the submit server once you have logged in to T
 In case you are looking to make a full scale test run with the default testing data you can access such data at `/tsd/shared/bioinformatics/test-data/Selma/`. The toy datasets that are in `Selma/workspace/fastq` will let you make sure that things work in theory, it will run the workflow all the way to the last tool where it will crash due to too small input files. 
 
 # Index
-* [Installation](https://github.com/elixir-no-nels/Selma/#installation)  
-* [Making a clean copy](https://github.com/elixir-no-nels/Selma/#making-a-clean-copy-of-selma-and-the-reference-files-with-the-setup-script)  
-* [Configuring directory paths](https://github.com/elixir-no-nels/Selma/#configuring-directory-paths)  
-* [Reference files](https://github.com/elixir-no-nels/Selma/#reference-files)  
-* [File staging directory](https://github.com/elixir-no-nels/Selma/#file-staging-directory)  
-* [Editing the sbatch file](https://github.com/elixir-no-nels/Selma/#editing-the-sbatch-file)  
-* [Quickstart](https://github.com/elixir-no-nels/Selma/#quickstart)  
-* [Run instructions](https://github.com/elixir-no-nels/Selma/#run-instructions)  
-* [Locating your input files](https://github.com/elixir-no-nels/Selma/#locating-your-input-files)  
-* [Preparing the tsv file](https://github.com/elixir-no-nels/Selma/#preparing-the-tsv-file)  
-* [Set the output directory](https://github.com/elixir-no-nels/Selma/#set-the-output-directory)  
-* [Selecting reference file version](https://github.com/elixir-no-nels/Selma/#selecting-reference-file-version)  
-* [Optional custom interval file](https://github.com/elixir-no-nels/Selma/#optional-custom-interval-file)  
+* [Installation](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#installation)  
+* [Making a clean copy](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#making-a-clean-copy-of-selma-and-the-reference-files-with-the-setup-script)  
+* [Configuring directory paths](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#configuring-directory-paths)  
+* [Reference files](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#reference-files)  
+* [File staging directory](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#file-staging-directory)  
+* [Editing the sbatch file](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#editing-the-sbatch-file)  
+* [Quickstart](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#quickstart)  
+* [Run instructions](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#run-instructions)  
+* [Locating your input files](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#locating-your-input-files)  
+* [Preparing the tsv file](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#preparing-the-tsv-file)  
+* [Set the output directory](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#set-the-output-directory)  
+* [Selecting reference file version](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#selecting-reference-file-version)  
+* [Optional custom interval file](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#optional-custom-interval-file)  
 
 ## Setup checklist
 The following steps are mandatory when you want to run the workflow from scratch:  
-* [Making a clean copy](https://github.com/elixir-no-nels/Selma/#making-a-clean-copy-of-selma-and-the-reference-files-with-the-setup-script)
-* [Configuring directory paths](https://github.com/elixir-no-nels/Selma/#configuring-directory-paths)
-* [Locating your input files](https://github.com/elixir-no-nels/Selma/#locating-your-input-files)
-* [Preparing the tsv file](https://github.com/elixir-no-nels/Selma/#preparing-the-tsv-file)
-* [Set the output directory](https://github.com/elixir-no-nels/Selma/#set-the-output-directory)
-* [Selecting reference file version](https://github.com/elixir-no-nels/Selma/#selecting-reference-file-version)
+* [Making a clean copy](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#making-a-clean-copy-of-selma-and-the-reference-files-with-the-setup-script)
+* [Configuring directory paths](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#configuring-directory-paths)
+* [Locating your input files](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#locating-your-input-files)
+* [Preparing the tsv file](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#preparing-the-tsv-file)
+* [Set the output directory](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#set-the-output-directory)
+* [Selecting reference file version](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#selecting-reference-file-version)
 
 ## Installation  
 ### Making a clean copy of Selma and the reference files with the setup script
