@@ -270,7 +270,7 @@ while true; do
 	fi
 
 	# Run squeue, store the current job state code and use it to give information to the user as well as act according to the status
-	STATUS=$(squeue -h -t all -j $SLURMID -o %t 2>&1)
+	STATUS=$(squeue -h -t all -j $SLURMID -o %t 2>&1) || true
 
 	# Begin checking the $STATUS variable by checking if the job has been canceled
 	if [[ $STATUS == CA ]]; then
