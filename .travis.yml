@@ -7,4 +7,4 @@ before_install:
   - docker build -t oskarv/snakemake-germline-tools .
 
 script:
-  - docker run -ti oskarv/snakemake-germline-tools -c sh 'samtools; gatk --version'
+  - docker run -ti oskarv/snakemake-germline-tools sh -s 'samtools; gatk --version'
