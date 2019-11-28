@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #SBATCH --job-name=Selma
-#SBATCH --account=p172
+#SBATCH --account=p11
 #SBATCH --time=00-25:00:00
 #SBATCH --mem-per-cpu=3750
 #SBATCH --cpus-per-task=16
