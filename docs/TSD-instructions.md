@@ -19,6 +19,7 @@ In case you are looking to make a full scale test run with the default testing d
 	* [Preparing the tsv file](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#preparing-the-tsv-file)  
 	* [Set the output directory](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#set-the-output-directory)  
 	* [Selecting reference file version](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#selecting-reference-file-version)  
+	* [Selecting mode](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#selecting-mode)
 * [Optional custom interval file](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#optional-custom-interval-file-eg-for-exome-calling)  
 * [Optimizing the execution of Selma](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#optimizing-the-execution-of-selma)  
 	* [The default mode](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#the-default-mode)
@@ -79,7 +80,7 @@ Or use [this](https:/raw.githubusercontent.com/elixir-no-nels/Selma/master/sampl
 Populate the columns with appropriate information, then save the file and name it `my-samples.tsv` or something suitable. Remember to tab separate the columns.  
 Assuming you already have the input files ready, and that the output directory exists, you can now start the workflow as such:  
 ```bash 
-./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38
+./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38 -m tsd
 ```
 This will use hg38 reference files, you can also use b37 reference files.
 
@@ -145,10 +146,13 @@ The flag for reference version selection is `-r`, so the resulting command line 
 ./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38
 ```
 
+### Selecting mode
+Selma can be run both locally or on slurm on TSD. You need to specify if you want to run it in TSD mode or local mode by using the `-m` flag with either `tsd` or `local` as argument.
+
 And that's it! You should be able to run the workflow now by running the following:  
 ```bash
 cd /cluster/projects/pXX/UiO-Cancer/
-./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38
+./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38 -m tsd
 ```
 This will run Selma on Colossus using the Singularity image that was built with [this](https:/github.com/elixir-no-nels/Selma/blob/master/singularity/BuildSingularityImage.sh) script.
 
