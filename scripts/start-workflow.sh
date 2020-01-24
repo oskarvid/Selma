@@ -79,7 +79,7 @@ while getopts 'm:c:i:t:o:r:l:e:hs' flag; do
 	s)
 		s=${OPTARG}
 		SPLIT=TRUE
-		inf "Running one sample per node"
+		inf "Running one sample per node to run the workflow in parallel"
 		;;
 	e)
 		e=${OPTARG}
