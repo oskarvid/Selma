@@ -4,7 +4,7 @@ These instructions have been verified to work with singularity version 2.6.1 on 
 
 First of all you need to ssh into the submit server once you have logged in to TSD. The base command is `ssh pXX-submit.tsd.usit.no`, you need to change `pXX` to your actual project number.  
 
-In case you are looking to make a full scale test run with the default testing data you can access such data at `/tsd/shared/bioinformatics/test-data/Selma/`. The toy datasets that are in `Selma/workspace/fastq` will let you make sure that things work in theory, it will run the workflow all the way to the last tool where it will crash due to too small input files. 
+In case you are looking to make a full scale test run with the default testing data you can access such data at `/tsd/shared/bioinformatics/test-data/Selma/`. You can use either the Coriell dataset or the NA12878 dataset, there is no qualitative difference between the two. The toy dataset that is in `Selma/workspace/fastq` will let you make sure that things work in theory, it will run the workflow all the way to the last tool where it will crash due to too small input files.
 
 # Index
 * [Installation](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#installation)  
@@ -20,19 +20,24 @@ In case you are looking to make a full scale test run with the default testing d
 	* [Set the output directory](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#set-the-output-directory)  
 	* [Selecting reference file version](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#selecting-reference-file-version)  
 * [Optional custom interval file](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#optional-custom-interval-file-eg-for-exome-calling)  
+* [Optimizing the execution of Selma](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#optimizing-the-execution-of-selma)  
+	* [The default mode](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#the-default-mode)
+	* [One sample per node](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#one-sample-per-node)
+	* [Select subset of samples from “master” sample.tsv file](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#select-subset-of-samples-from-master-sample.tsv-file)
 
 ## Setup checklist
-The following steps are mandatory when you want to run the workflow from scratch:  
+The following steps are mandatory when you want to run the workflow from scratch:
+
 * [Making a clean copy](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#making-a-clean-copy-of-selma-and-the-reference-files-with-the-setup-script)  
 * [Configuring directory paths](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#configuring-directory-paths)  
 * [Locating your input files](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#locating-your-input-files)  
 * [Preparing the tsv file](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#preparing-the-tsv-file)  
 * [Set the output directory](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#set-the-output-directory)  
-* [Selecting reference file version](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#selecting-reference-file-version)  
+* [Selecting reference file version](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#selecting-reference-file-version)
 
 ## Installation  
 ### Making a clean copy of Selma and the reference files with the setup script
-Before you can run Selma for the first time you need to make a clean copy first, this is because you are going to make custom settings that are unique for your project. The suggested method is to do it with the setup script that is located in `/tsd/shared/bioinformatics/workflows/Selma/utilities/Selma-setup.sh`  
+Before you can run Selma for the first time you need to make a clean copy first. The suggested method is to do it with the setup script that is located in `/tsd/shared/bioinformatics/workflows/Selma/utilities/Selma-setup.sh`  
 It needs the directory path to where you want to put your own installation of Selma and another path for where to store the reference directories. Let's assume you want to put Selma in `/cluster/projects/pXX/UiO-Cancer/` and the reference files in `/cluster/projects/pXX/Selma-references/`, simply run the following command:
 ```bash
 /tsd/shared/bioinformatics/workflows/Selma/utilities/Selma-setup.sh -s /cluster/projects/pXX/UiO-Cancer/ -b /cluster/projects/pXX/Selma-references/ -g /cluster/projects/pXX/Selma-references/
@@ -54,27 +59,34 @@ In this case you would put `REFERENCES=/cluster/projects/pXX/Selma-references/` 
 #### File staging directory
 Next up is setting the file staging directory in the `settings/settings.conf` file. This is where Selma will do all the preparation steps before starting the actual workflow on Colossus, and this is also where the output files from the finished Colossus data analysis will end up temporarily before being sent to the final storage directory that you define with the `-o` option when you start the workflow. The directory needs to be on a disk that is writeable by Colossus, so using something like `FILESTAGING=/cluster/projects/pXX/Selma-staging` is a suggestion, run `mkdir /cluster/projects/pXX/Selma-staging` to create it.  
 
-#### Editing the sbatch file
-Now you need to edit the `scripts/RunOnNode.sbatch` file and change the `#SBATCH --account=pXX` line and put your slurm account name there.  
+#### Slurm settings
+The slurm settings are also in the `settings/settings.conf` file, you most likely only need to change the ACCOUNT to whatever account you are using.
+
+The other variables are the following:
+
+* CPUSPERTASK: Adding more cores will improve the execution time but at a relatively high cost since the improvement is not linear.  
+* MEMPERCPU: More memory per CPU will not do much for the execution time, it should only be necessary to increase this if the workflow is running out of memory for some reason.  
+* TIME: The time variable is conservative as it is, but should of course be increased if necessary. Reads with 30X depth with a total of roughly 50GB file size take somewhere between 16-21 hours to run, so the default 25 hours should be plenty.
 
 ## Quickstart  
-Assuming that Selma is already installed, and you know very well what you are doing, begin by running `cd /path/to/Selma/directory/` because you must always be in your personal Selma directory when you start the workflow.  
+Assuming that Selma is already installed, and you know very well what you are doing, begin by running `cd /path/to/Selma/directory/`
 
 Then create a _tab separated file_ using the header below and add your sample information in a new row below it:  
 ```bash
 flowcell	sample	library	lane	R1	R2
-```
+``` 
 Or use [this](https:/raw.githubusercontent.com/elixir-no-nels/Selma/master/samples.tsv) as a template.  
 Populate the columns with appropriate information, then save the file and name it `my-samples.tsv` or something suitable. Remember to tab separate the columns.  
 Assuming you already have the input files ready, and that the output directory exists, you can now start the workflow as such:  
 ```bash 
-./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38
+./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38 -m tsd
 ```
 This will use hg38 reference files, you can also use b37 reference files.
 
-## Detailed run instructions
-Let's continue by using a thought experiment to understand how to supply the workflow with correct options.  
-Keep in mind that every time it says `./start-workflow.sh ...` it is assumed that you are in your personal Selma directory. So the first thing to do is to run `cd /cluster/projects/pXX/path/to/where/you/put/Selma`
+Also consider checking out [the optimization settings](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#optimizing-the-execution-of-selma) so you can squeeze out more bang for the buck when you run two or more samples at once.
+
+## Run instructions
+Let's continue by using a thought experiment to understand how to supply the workflow with correct options.
 
 ### Locating your input files
 Your input data in this thought experiment is located in `/tsd/pXX/data/durable/input-data/`, this directory has two files and one directory that also contains two files like this:  
@@ -88,7 +100,7 @@ Your input data in this thought experiment is located in `/tsd/pXX/data/durable/
     
 ```
 
-The first flag that we can set based on this information is the `-i` flag, the `-i` flag takes the input file directory as argument, in this case it will look like this `./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ [...]`.  
+The first flag that we can set based on this information is the `-i` flag, the `-i` flag takes the input file directory as argument, in this case it will look like this: `./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ [...]`.  
 The next step is to prepare the tsv file.
 
 ### Preparing the tsv file
@@ -128,11 +140,21 @@ You have a choice of two reference file versions, either the `b37` decoy version
 
 If you don't know which one to choose you should probably use hg38, it's generally more complete compared to b37 according to the article above.
 
-The flag for reference version selection is `-r`, the valid arguments are `hg38` for the hg38 reference files, or `b37` for the b37 reference files.  
+The flag for reference version selection is `-r`, so the resulting command line so far looks like this:  
+```bash
+./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38
+```
+
+### Selecting mode
+Selma can be run both locally or on slurm on TSD. You need to specify if you want to run it in TSD mode or local mode by using the `-m` flag with either `tsd` or `local` as argument like so:
+```bash
+./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38 -m tsd
+```
+
 And that's it! You should be able to run the workflow now by running the following:  
 ```bash
-cd /cluster/projects/pXX/UiO-Cancer/Selma
-./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38
+cd /cluster/projects/pXX/UiO-Cancer/
+./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38 -m tsd
 ```
 This will run Selma on Colossus using the Singularity image that was built with [this](https:/github.com/elixir-no-nels/Selma/blob/master/singularity/BuildSingularityImage.sh) script.
 
@@ -157,6 +179,25 @@ If you want to use a custom interval list, e.g for exome calling, the flag is `-
 And the command line:
 
 ```bash
-./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38 -l /put/the/actual/absolute/path/here/hg38_exome.list
+./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38 -m tsd -l /put/the/actual/absolute/path/here/hg38_exome.list
 ```
 Supported interval list formats include `.bed`, `.intervals`, `.list` and `.interval_list`
+
+## Optimizing the execution of Selma
+### The default mode
+Out of the box Selma will run all samples on one execute node, this is acceptable if time is no issue or if you have only one or a few samples, but it is very slow for multiple samples. If you have multiple samples to run the default mode makes you wait for _all samples_ to finish running before getting your hands on the output files.
+
+### One sample per node
+To optimize the execution you can use the `-s` flag to make Selma run one sample per execute node. This means that if you have 200 samples to run, each sample is put in the slurm queue and will start as soon as there is a slot free in the slurm queue. The output files are transferred back to the final storage as soon as the job on the node is finished. This is the fastest mode Selma offers.
+
+### Select subset of samples from "master" sample.tsv file
+Let's assume you have a `big-collection-of-samples.tsv` file that has 200 rows with 13 different samples in it, you start Selma with this tsv file as input and unfortunately there was an issue with 5 of the samples. You now want to rerun these 5 samples and the question is what is the best way of doing this? Since you are smart and don't want to spend lots of time copy/pasting a bunch of rows from one file to another, you simply create a new file that _only contains the sample names_ in one row each like this:
+```markdown
+MELANO1
+ENDOMET37
+HEPATO8
+LYMPHO15
+SARCO3
+```
+Now name the new tsv file something clever like `5samples.tsv` and use this _in addition to_ your master `big-collection-of-samples.tsv` file like this: `./scripts/start-workflow.sh -t big-collection-of-samples.tsv -o /path/to/output/disk ... -e 5samples.tsv`.  
+Hint: Also use the `-s` flag to run each sample on a separate node for optimal execution times.

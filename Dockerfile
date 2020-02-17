@@ -1,4 +1,4 @@
-FROM quay.io/snakemake/snakemake
+FROM snakemake/snakemake
 MAINTAINER Oskar Vidarsson <oskar.vidarsson@uib.no>
 
 # Install wget and bwa
