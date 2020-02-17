@@ -95,6 +95,6 @@ fi
 if [[ $SDEST == false ]]; then
         :
 elif [[ $SDEST == "${s%/}" ]]; then
-        rprog --exclude=.git /tsd/shared/bioinformatics/workflows/Selma/ $SDEST/Selma
+        rprog --exclude=.git /tsd/shared/bioinformatics/workflows/Selma $SDEST/
 	rprog /tsd/shared/bioinformatics/containers/singularity/snakemake-germline-tools.simg $SDEST/Selma/singularity
 fi

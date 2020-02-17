@@ -73,14 +73,22 @@ cleanexit () {
 inf "Copying $WFDIR to staging directory: $STAGINGDIR/$WFDIRNAME-$DATE\n"
 rprog --exclude=.git $WFDIR/ $STAGINGDIR/$WFDIRNAME-$DATE
 
-# Copy TSV file to $STAGINGDIR/$WFDIR-$DATE/workspace/samples.tsv
-inf "Copying $TSV to $STAGINGDIR/$WFDIRNAME-$DATE/workspace/samples.tsv\n"
-rprog $TSV $STAGINGDIR/$WFDIRNAME-$DATE/workspace/samples.tsv
-
 # Say that the input files/folder is being copied to $STAGINGDIR/$WFDIRNAME-$DATE/workspace/ on the /cluster disk
 inf "Copying input files to $STAGINGDIR/$WFDIRNAME-$DATE/workspace/ this may take a while if your input files are large.\n"
 mapfile -t FILES < <(awk '{ print $5, $6}' $TSV | tail -n +2)
 rprog $(echo " ${FILES[@]}" | sed -e 's, , '"$INPUTS"'/,g') "$STAGINGDIR/$WFDIRNAME-$DATE"/workspace/
+
+awk -F $"\t" -v OFS="\t" '
+	function GSUB( F )
+	{ gsub(/^.*\/|,.*$/, "", $F) }
+	GSUB( 5 )
+	GSUB( 6 )
+	1
+	' $TSV > ${TSV/.tsv}-$DATE.tsv
+
+# Copy TSV file to $STAGINGDIR/$WFDIR-$DATE/workspace/samples.tsv
+inf "Copying tsv file to $STAGINGDIR/$WFDIRNAME-$DATE/workspace/samples.tsv\n"
+rprog ${TSV/.tsv}-$DATE.tsv $STAGINGDIR/$WFDIRNAME-$DATE/workspace/samples.tsv
 
 # Add time stamp to make event trigger files unique
 STAMP=$(date +%s)

@@ -79,7 +79,7 @@ while getopts 'm:c:i:t:o:r:l:e:hs' flag; do
 	s)
 		s=${OPTARG}
 		SPLIT=TRUE
-		inf "Running one sample per node to run the workflow in parallel"
+		inf "Running one sample per node"
 		;;
 	e)
 		e=${OPTARG}
@@ -156,8 +156,6 @@ if [[ -z "${m}" ]]; then
 elif [[ "${m}" == tsd && "${c}" == docker ]]; then
 	err "Cannot select docker mode when running on TSD, only singularity is possible"
 	die
-elif [[ "${m}" == tsd && "${c}" == singularity ]]; then
-	continue
 elif [[ $MODE == local ]]; then
 	if [[ -z "${c}" ]]; then
 		err "-c is required, valid options are docker or singularity"
@@ -201,7 +199,7 @@ if [[ -z "${r}" ]]; then
 fi
 
 # Check that the supplied input file folder contains supported input files before proceeding
-if [[ ! $(compgen -G $INPUTS/*.fq) && ! $(compgen -G $INPUTS/*.fq.gz) && ! $(compgen -G $INPUTS/*.fastq) && ! $(compgen -G $INPUTS/*.fastq.gz) ]]; then
+if [[ ! $(find $INPUTS -type f -name *.fq) && ! $(find $INPUTS -type f -name *.fq.gz) && ! $(find $INPUTS -type f -name *.fastq) && ! $(find $INPUTS -type f -name *.fastq.gz) ]]; then
 	err "The provided input directory $INPUTS does not contain supported input files"
 	err "Supported file formats are *.fq, *.fq.gz, *.fastq or *.fastq.gz"
 	err "Please check if the correct folder path is used"

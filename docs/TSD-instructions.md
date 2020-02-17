@@ -4,7 +4,7 @@ These instructions have been verified to work with singularity version 2.6.1 on 
 
 First of all you need to ssh into the submit server once you have logged in to TSD. The base command is `ssh pXX-submit.tsd.usit.no`, you need to change `pXX` to your actual project number.  
 
-In case you are looking to make a full scale test run with the default testing data you can access such data at `/tsd/shared/bioinformatics/test-data/Selma/`. The toy datasets that are in `Selma/workspace/fastq` will let you make sure that things work in theory, it will run the workflow all the way to the last tool where it will crash due to too small input files. 
+In case you are looking to make a full scale test run with the default testing data you can access such data at `/tsd/shared/bioinformatics/test-data/Selma/`. You can use either the Coriell dataset or the NA12878 dataset, there is no qualitative difference between the two. The toy dataset that is in `Selma/workspace/fastq` will let you make sure that things work in theory, it will run the workflow all the way to the last tool where it will crash due to too small input files.
 
 # Index
 * [Installation](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#installation)  
@@ -19,7 +19,6 @@ In case you are looking to make a full scale test run with the default testing d
 	* [Preparing the tsv file](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#preparing-the-tsv-file)  
 	* [Set the output directory](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#set-the-output-directory)  
 	* [Selecting reference file version](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#selecting-reference-file-version)  
-	* [Selecting mode](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#selecting-mode)
 * [Optional custom interval file](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#optional-custom-interval-file-eg-for-exome-calling)  
 * [Optimizing the execution of Selma](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#optimizing-the-execution-of-selma)  
 	* [The default mode](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md#the-default-mode)
@@ -101,7 +100,7 @@ Your input data in this thought experiment is located in `/tsd/pXX/data/durable/
     
 ```
 
-The first flag that we can set based on this information is the `-i` flag, the `-i` flag takes the input file directory as argument, in this case it will look like this `./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ [...]`.  
+The first flag that we can set based on this information is the `-i` flag, the `-i` flag takes the input file directory as argument, in this case it will look like this: `./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ [...]`.  
 The next step is to prepare the tsv file.
 
 ### Preparing the tsv file
@@ -147,7 +146,10 @@ The flag for reference version selection is `-r`, so the resulting command line 
 ```
 
 ### Selecting mode
-Selma can be run both locally or on slurm on TSD. You need to specify if you want to run it in TSD mode or local mode by using the `-m` flag with either `tsd` or `local` as argument.
+Selma can be run both locally or on slurm on TSD. You need to specify if you want to run it in TSD mode or local mode by using the `-m` flag with either `tsd` or `local` as argument like so:
+```bash
+./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38 -m tsd
+```
 
 And that's it! You should be able to run the workflow now by running the following:  
 ```bash
@@ -177,7 +179,7 @@ If you want to use a custom interval list, e.g for exome calling, the flag is `-
 And the command line:
 
 ```bash
-./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38 -l /put/the/actual/absolute/path/here/hg38_exome.list
+./scripts/start-workflow.sh -i /tsd/pXX/data/durable/input-data/ -t /tsd/pXX/data/durable/input-data/my-samples.tsv -o /tsd/pXX/data/durable/Selma-outputs -r hg38 -m tsd -l /put/the/actual/absolute/path/here/hg38_exome.list
 ```
 Supported interval list formats include `.bed`, `.intervals`, `.list` and `.interval_list`
 

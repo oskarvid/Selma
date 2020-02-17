@@ -21,7 +21,7 @@ echo "${GREEN}""Usage:${RESET} $0 [ -h ] [ -i input directory ] [ -t tsv file ] 
 
 -m : Mode, valid options are local or tsd \
 
--s : Split samples on one node each \
+-s : Split samples on one node each, improves execution time considerably for two or more samples \
 
 -e : Select sample subset from master sample file \
 " 1>&2; exit 0; }
@@ -154,7 +154,7 @@ one_sample_per_node () {
 
 	for sample in ${SAMPLES[@]}; do
 		printf "flowcell\tsample\tlibrary\tlane\tR1\tR2\n" > .tmpSamples-$DATE/$sample.tsv
-		grep $sample $SAMPLEFILE >> .tmpSamples-$DATE/$sample.tsv
+		grep -w $sample $SAMPLEFILE >> .tmpSamples-$DATE/$sample.tsv
 		TSVFILES+=("$(pwd)/.tmpSamples-$DATE/$sample.tsv")
 	done
 
