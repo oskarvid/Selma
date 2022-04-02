@@ -1,0 +1,10 @@
+language: bash
+
+services:
+  - docker
+
+before_install:
+  - docker build -t oskarv/snakemake-germline-tools .
+
+script:
+  - docker run -ti oskarv/snakemake-germline-tools gatk --version
