@@ -1,5 +1,5 @@
-FROM snakemake/snakemake
-MAINTAINER Oskar Vidarsson <oskar.vidarsson@uib.no>
+FROM snakemake/snakemake:stable
+MAINTAINER Oskar Vidarsson <oskarvidarsson@gmail.com>
 
 # Install wget and bwa
 RUN apt-get update && apt-get install -y \
