@@ -10,6 +10,7 @@ Selma can also run in a virtualized environment using conda as such:
 ```
 cd Selma
 conda env create -n selma --file conda/env.yaml
+snakemake -j --config version=hg38/or/b37 interval=/path/to/interval_list
 ```
 After it's done building the environment you can run it straight on the commandline without the need for docker or the helper scripts. You still need to edit the `workspace/config.yaml` and `workspace/samples.tsv` files with correct paths, samples etc. 
 
