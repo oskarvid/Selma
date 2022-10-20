@@ -1,13 +1,17 @@
 # Germline Variant Calling Pipeline built in Snakemake  
 
-## Disclaimer
-Active development of this pipeline has moved to https://github.com/elixir-no-nels/snakemake_germline, this version of the workflow is saved for legacy purposes.
-The new version is adapted for usage on [TSD](https://www.uio.no/tjenester/it/forskning/sensitiv/), it is much more complex and uses advanced features to increase
-the generalizability of usage. The version in this repository is more suitable for single sample usage for users who know their way around snakemake.
-
 ## Introduction
+**Docker**  
 The Snakefile is adapted to run inside a docker container that I prepared for the pipeline. Either download it manually with `docker pull oskarv/snakemake-germline-tools`
 or run the start script and it'll get downloaded automatically if it isn't already downloaded. Alternatively build it manually with the Dockerfile.  
+
+**Conda**  
+Selma can also run in a virtualized environment using conda as such:  
+```
+cd Selma
+conda env create -n selma --file conda/env.yaml
+```
+After it's done building the environment you can run it straight on the commandline without the need for docker or the helper scripts. You still need to edit the `workspace/config.yaml` and `workspace/samples.tsv` files with correct paths, samples etc. 
 
 ![Graphical visualization of the pipeline steps](https://github.com/oskarvid/snakemake_germline/blob/master/dag.png)
 
@@ -26,7 +30,7 @@ You can also run it locally with `snakemake -j`, just edit the relevant paths in
 Singularity is not supported due to the use of "run:", the Singularity directive is only allowed with shell, script or wrapper directives.
 
 ## Hardware requirements and optimizations  
-At the current state the pipeline is highly optimized for use on a single server with 16 thread, 64GB RAM and at least 500GB storage assuming that there are 8 
+At the current state the pipeline is highly optimized for use on a single server with 16 threads, 64GB RAM and at least 500GB storage assuming that there are 8 
 fastq.gz files totalling 51GB with ~30x coverage. But when using the test files 
 in the fastq folder it should run on any laptop using 2 threads and 8GB RAM, but 
 preferrably 4 threads and 16GB RAM, the storage requirements apart from the 
@@ -38,25 +42,6 @@ The execution time on a server with 16 threads and 16 GB RAM is roughly 18 hours
 and 30 minutes if each scatter gather tool is given 2GB RAM each and using the 
 same input files as above.  
 
-`<rant>` Compared with my WDL 
-based pipeline for germline variant calling, this is 5-6 hours faster. The reason for this speed increase is due to parallelization options that aren't
-available in WDL. In WDL you are not able to manually limit a scatter/gather process to loop over each input file for one tool, this causes an inefficiency
-for bwa since all input files must run at the same time, as well as all FastqToSam processes, meaning that you must either choose between not overloading 
-the system and not parallelize bwa, which would mean that you run e.g 8 input pairs for bwa and FastqToSam until FastqToSam is finished, which takes ~25 
-minutes, and thus temporarily creating a system load of 16, but then only use 8 threads once FastqToSam is finished, or temporarily overload the system 
-and parallelize bwa with at least 3 threads, since I expect using 2 threads won't actually parallelize anything since one thread is usually used to control
-the rest of the threads, meaning you would use one thread to control one thread if only two threads are used to parallelize bwa.  
-
-Thus using 3 threads would
-create a system load of 3x8 + 8 until FastqToSam is finished, and then a consistent system load of 3x8 until bwa is finished. On a 16 thread machine this 
-is suboptimal, a better solution, which Snakemake enables, is to loop over the input files with bwa, allowing you to use 16 threads per pair which means 
-that each pair takes roughly 50 minutes to finish, and then run 8 parallel processes for FastqToSam, which takes roughly 25 minutes. That way you don't 
-overload the system and gain in speed.  
-
-After correspondence with The Broad Institute, the organization that develops WDL, their stance is that WDL should
- rather be used on e.g Google cloud, and that the shards should be distributed to a compute node each. This is not always possible, hence this feature is
- sorely needed in WDL since the lack of it causes unecessary inefficiens. To be fair there are optimizations in this pipeline that could be implemented
-in my current WDL germline pipeline that should decrease the execution time by at least ~70 minutes. `</rant>`
 =======
 <h1 align="center">
   <br>
