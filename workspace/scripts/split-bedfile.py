@@ -47,6 +47,6 @@ for sequence_tuple in sequence_tuple_list[1:]:
 tsv_string += "\n" + "--intervals unmapped\n"
 
 # Create the bed files from each line in the tsv_string variable
-for i in range(1, len(tsv_string.splitlines())):
+for i in range(0, len(tsv_string.splitlines())):
     with open(dir_name+"/contigs_{}.bed".format(i), 'w') as f:
         f.write(tsv_string.splitlines()[i])

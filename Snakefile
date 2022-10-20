@@ -62,7 +62,7 @@ for sequence_tuple in sequence_tuple_list[1:]:
 
 # add a final last line to "add" the unmapped contig job as well
 string += "\n"
-CONTIGS = range(1, len(string.splitlines()))
+CONTIGS = range(0, len(string.splitlines()))
 
 rule all:
 	input:
@@ -101,7 +101,7 @@ rule BwaMem:
 	benchmark:
 		"Outputs/benchmarks/{sample}_{lane}_{flowcell}.bwa.tsv",
 	threads:
-		15
+		7
 	priority:
 		0
 	shell:
@@ -373,9 +373,9 @@ rule IndexGatheredHTCVCFs:
 	shell:
 		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
 		IndexFeatureFile \
-		-F {input} \
+		-I {input} \
 		-O {output}"
-		
+
 # Perform joint genotyping
 rule GenotypeGVCFs:
 	input:
@@ -427,7 +427,7 @@ rule IndexGatheredGVCFs:
 	shell:
 		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
 		IndexFeatureFile \
-		-F {input} \
+		-I {input} \
 		-O {output}"
 
 # Build a recalibration model to score variant quality for filtering purposes
