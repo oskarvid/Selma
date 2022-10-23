@@ -1,34 +1,85 @@
 # Germline Variant Calling Pipeline built in Snakemake  
 
-## Introduction
-**Docker**  
-The Snakefile is adapted to run inside a docker container that I prepared for the pipeline. Either download it manually with `docker pull oskarv/snakemake-germline-tools`
-or run the start script and it'll get downloaded automatically if it isn't already downloaded. Alternatively build it manually with the Dockerfile.  
+<h1 align="center">
+  <br>
+  <a href="https://github.com/oskarvid/Selma"><img src="https://raw.githubusercontent.com/oskarvid/Selma/master/.selma.svg?sanitize=true" alt="Selma" width="300"></a>
+</h1>
 
-**Conda**  
+[![Travis Build Status](https://api.travis-ci.com/oskarvid/.selma.svg?branch=master)](https://travis-ci.com/oskarvid/Selma?branch=master)  
+
+#### Graphical visualization of the workflow steps
+![Graphical visualization of the pipeline steps](https://raw.githubusercontent.com/oskarvid/Selma/master/.simplifieddag.png)
+
+## Instructions
+**Raw metal (or Guix shell environment) execution**  
+**N.B** No matter which method you use you always need to edit the `workspace/config.yaml` and `workspace/samples.tsv` files with correct paths, samples etc.
+**N.B**
+
+The raw metal method is if you have taken care of the dependency installation yourself.  
+```
+snakemake -j --config version=hg38 interval=/path/to/hg38/interval_list
+```
+The following instructions guides you how to set up the `Selma` environment using `docker`, `conda` or `guix`.
+
+**Docker execution**  
+Either download the image manually with `docker pull oskarv/selma` or run 
+```
+docker run --rm -ti -v $PWD:/data -w /data selma snakemake -j --config version=hg38 interval=/path/to/hg38/interval_list
+```
+and it'll get downloaded automatically. Alternatively build it manually with the method described farther down.
+
+**Conda execution**  
 Selma can also run in a virtualized environment using conda as such:  
 ```
-cd Selma
 conda env create -n selma --file conda/env.yaml
 snakemake -j --config version=hg38/or/b37 interval=/path/to/interval_list
 ```
-After it's done building the environment you can run it straight on the commandline without the need for docker or the helper scripts. You still need to edit the `workspace/config.yaml` and `workspace/samples.tsv` files with correct paths, samples etc. 
+Alternatively you can use the `--use-conda` flag:  
+```
+snakemake -j --config version=hg38 interval=/path/to/hg38/interval_list --use-conda
+```
 
-![Graphical visualization of the pipeline steps](https://github.com/oskarvid/snakemake_germline/blob/master/dag.png)
+**Guix execution**  
+[Guix](https://guix.gnu.org/) can be used to install all dependencies apart from `gatk4` as such:  
+```
+guix shell -m manifest.scm
+```
+`gatk4` can be installed in a location of your choice with this:  
+```
+wget --no-check-certificate https://github.com/broadinstitute/gatk/releases/download/4.3.0.0/gatk-4.3.0.0.zip -O $PWD/gatk4.zip && \
+unzip -q $PWD/gatk4.zip -d $PWD/ && \
+mv $PWD/gatk*/gatk* $PWD/ && \
+rm -r $PWD/gatk*/ $PWD/gatk4.zip && \
+export PATH="$PATH:$PWD/" && \
+export GATK_LOCAL_JAR=$PWD/gatk-package-4.3.0.0-local.jar
+```
+Running `gatk` should by now work as expected.
 
-# Instructions  
-Edit `scripts/start-pipeline.sh` and change the file path for `REFERENCES` to the filepath where you keep your reference files. The default reference files 
-are the hg38 reference files from the Broad Institute, they host them at their public ftp server here:  
+**Guix docker build**  
+The docker image was built as follows:  
+```
+guix pack -f docker -S python=python3 -S /usr/bin/env=bin/env -S /bin=bin samtools gnuplot bwa snakemake bcftools python-pandas openjdk nss-certs bash wget unzip coreutils python2-minimal python-minimal sed python-matplotlib tectonic texlive-base
+```
+This produces a `tar.gz` named `/gnu/store/a-long-hash-samtools-gnuplot-bwa-snakemake-bcftools-docker-pack.tar.gz` and this file is then loaded as a docker image like this:  
+```
+docker load < /gnu/store/a-long-hash-samtools-gnuplot-bwa-snakemake-bcftools-docker-pack.tar.gz
+```
+Then it's on to building the `Selma` docker image to add and configure `gatk4`:  
+```
+docker build -t oskarv/selma .
+```
+And now you can run `Selma` with docker!
+```
+docker run --rm -ti -v $PWD:/data -w /data selma snakemake -j --config version=hg38 interval=/path/to/hg38/interval_list
+```
+
+**Reference files**
+The default reference files are the hg38 reference files from the Broad Institute, they host them at their public ftp server here:  
 ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle  
 There is no password. You can automatically download the hg38 folder with this command:  
 `wget -m ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38`  
 
 If you haven't indexed the fasta file with bwa you must do that before you run the pipeline.  
-
-Run the pipeline with `sh scripts/start-pipeline.sh` to run it in the oskarv/snakemake-germline-tools docker container with snakemake, bwa, samtools and 
-gatk installed.  
-You can also run it locally with `snakemake -j`, just edit the relevant paths in the script and make sure all tools are installed locally.  
-Singularity is not supported due to the use of "run:", the Singularity directive is only allowed with shell, script or wrapper directives.
 
 ## Hardware requirements and optimizations  
 At the current state the pipeline is highly optimized for use on a single server with 16 threads, 64GB RAM and at least 500GB storage assuming that there are 8 
@@ -44,49 +95,27 @@ and 30 minutes if each scatter gather tool is given 2GB RAM each and using the
 same input files as above.  
 
 =======
-<h1 align="center">
-  <br>
-  <a href="https://github.com/elixir-no-nels/Selma"><img src="https://raw.githubusercontent.com/elixir-no-nels/Selma/master/.selma.svg?sanitize=true" alt="Selma" width="300"></a>
-</h1>
-
-[![Travis Build Status](https://api.travis-ci.com/elixir-no-nels/Selma.svg?branch=milestone2)](https://travis-ci.com/elixir-no-nels/Selma?branch=milestone2)  
 
 ## About Selma
-Selma is a whole genome (germline) variant calling workflow developed at the University of Bergen based on the GATK suite of tools. The guiding philosophy behind it is that it should be easy to setup, easy to use and that it utilizes system resources efficiently. This is achieved by adopting a user centric frame of mind that aims to simplify complex tasks without sacrificing functionality. The workflow itself is based on [Snakemake](https://snakemake.readthedocs.io/en/stable/) and all dependencies are handled by using [Docker](https://www.docker.com/) and [Singularity](https://singularity.lbl.gov/) container technology. The current intended platform is [TSD](https://www.uio.no/tjenester/it/forskning/sensitiv/) but support for [HUNT-cloud](https://www.ntnu.edu/mh/huntcloud) as well as local execution is planned for future releases.  
+Selma is a whole genome germline variant calling workflow initially developed at the University of Bergen heavily inspired by the GATK best practices workflow. The guiding philosophy behind it is that it should be easy to setup, easy to use and that it utilizes system resources efficiently. The workflow is based on [Snakemake](https://snakemake.readthedocs.io/en/stable/) and supports [Conda](https://anaconda.org/), [Guix](https://guix.gnu.org/), [Docker](https://www.docker.com/) and (soon to be tested) [Singularity](https://singularity.lbl.gov/) execution modes.  
 Selma is named after the mythical Norwegian sea serpent that supposedly lives in [Lake Seljord](https://en.wikipedia.org/wiki/Selma_(lake_monster))
 
-The workflow development is currently supported by [Elixir2](https://elixir-europe.org/), [NorSeq](https://www.norseq.org/) and [Tryggve2](https://neic.no/tryggve/), and in the past also by [BioBank Norway](https://bbmri.no/). 
 
-#### Graphical visualization of the workflow steps
-![Graphical visualization of the workflow steps](https://raw.githubusercontent.com/elixir-no-nels/Selma/master/.simplifieddag.png)
 ###### This is a simplified graph portraying the key steps that the workflow goes through, [this](https://raw.githubusercontent.com/elixir-no-nels/Selma/master/.completedag.png) is a complete overview including every single step. The steps that have been left out only perform "administrative" functions and don't add to the data analysis per se.
 
-### Documentation
-* [TSD-instructions](https://github.com/elixir-no-nels/Selma/blob/master/docs/TSD-instructions.md)  
-* [Instructions for local use](https://github.com/elixir-no-nels/Selma/blob/master/docs/instructions-for-local-use.md)  
-* [Developer-instructions](https://github.com/elixir-no-nels/Selma/blob/master/docs/developer-instructions.md)  
-
 ### Tools
-[bwa](http://bio-bwa.sourceforge.net/bwa.shtml) version 0.7.15-2+deb9u1 - Maps fastq file to reference genome  
-[samtools](http://www.htslib.org/doc/samtools.html) version 1.3.1-3 - bwa pipes its output to samtools to make a bam output file  
-The following tools are all [gatk](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/) version 4.1.2.0  
-[SplitIntervals](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_SplitIntervals.php) - Splits interval list for scatter gather parallelization  
-[FastqToSam](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_FastqToSam.php) - Converts fastq files to unmapped bam files  
-[MergeBamAlignment](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_MergeBamAlignment.php) - Merge aligned BAM file from bwa with the unmapped BAM file from FastqToSam  
-[MarkDuplicates](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_markduplicates_MarkDuplicates.php) - Identifies duplicate reads  
-[BaseRecalibrator](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_bqsr_BaseRecalibrator.php) - Generates recalibration table for Base Quality Score Recalibration  
-[GatherBQSRReports](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_bqsr_GatherBQSRReports.php) - Gather base recalibration files from BaseRecalibrator  
-[ApplyBQSR](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_bqsr_ApplyBQSR.php) - Apply base recalibration from BaseRecalibrator  
-[GatherBamFiles](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/picard_sam_GatherBamFiles.php) - Concatenate efficiently BAM files from ApplyBQSR  
-[HaplotypeCaller](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_haplotypecaller_HaplotypeCaller.php) - Call germline SNPs and indels via local re-assembly of haplotypes  
-[GenotypeGVCFs](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_GenotypeGVCFs.php) - Perform genotyping on one pre-called sample from HaplotypeCaller  
-[VariantRecalibrator](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_vqsr_VariantRecalibrator.php) - Build a recalibration model to score variant quality for filtering purposes  
-[ApplyVQSR](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.1.2.0/org_broadinstitute_hellbender_tools_walkers_vqsr_ApplyVQSR.php) -  Apply a score cutoff to filter variants based on a recalibration table
-
-
-### Credits  
-**Supervisor**  
-[Kjell Petersen](mailto:kjell.petersen@uib.no)
-
-**Main developer**  
-[Oskar Vidarsson](mailto:oskar.vidarsson@uib.no)
+[bwa](http://bio-bwa.sourceforge.net/bwa.shtml) version 0.7.17 - Maps fastq file to reference genome  
+[samtools](http://www.htslib.org/doc/samtools.html) version 1.14 - bwa pipes its output to samtools to make a bam output file  
+The following tools are all [gatk](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.3.0.0/) version 4.3.0.0  
+[SplitIntervals](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.3.0.0/org_broadinstitute_hellbender_tools_walkers_SplitIntervals.php) - Splits interval list for scatter gather parallelization  
+[FastqToSam](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.3.0.0/picard_sam_FastqToSam.php) - Converts fastq files to unmapped bam files  
+[MergeBamAlignment](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.3.0.0/picard_sam_MergeBamAlignment.php) - Merge aligned BAM file from bwa with the unmapped BAM file from FastqToSam  
+[MarkDuplicates](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.3.0.0/picard_sam_markduplicates_MarkDuplicates.php) - Identifies duplicate reads  
+[BaseRecalibrator](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.3.0.0/org_broadinstitute_hellbender_tools_walkers_bqsr_BaseRecalibrator.php) - Generates recalibration table for Base Quality Score Recalibration  
+[GatherBQSRReports](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.3.0.0/org_broadinstitute_hellbender_tools_walkers_bqsr_GatherBQSRReports.php) - Gather base recalibration files from BaseRecalibrator  
+[ApplyBQSR](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.3.0.0/org_broadinstitute_hellbender_tools_walkers_bqsr_ApplyBQSR.php) - Apply base recalibration from BaseRecalibrator  
+[GatherBamFiles](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.3.0.0/picard_sam_GatherBamFiles.php) - Concatenate efficiently BAM files from ApplyBQSR  
+[HaplotypeCaller](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.3.0.0/org_broadinstitute_hellbender_tools_walkers_haplotypecaller_HaplotypeCaller.php) - Call germline SNPs and indels via local re-assembly of haplotypes  
+[GenotypeGVCFs](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.3.0.0/org_broadinstitute_hellbender_tools_walkers_GenotypeGVCFs.php) - Perform genotyping on one pre-called sample from HaplotypeCaller  
+[VariantRecalibrator](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.3.0.0/org_broadinstitute_hellbender_tools_walkers_vqsr_VariantRecalibrator.php) - Build a recalibration model to score variant quality for filtering purposes  
+[ApplyVQSR](https://software.broadinstitute.org/gatk/documentation/tooldocs/4.3.0.0/org_broadinstitute_hellbender_tools_walkers_vqsr_ApplyVQSR.php) -  Apply a score cutoff to filter variants based on a recalibration table
