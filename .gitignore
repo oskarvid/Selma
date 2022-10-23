@@ -2,3 +2,4 @@
 .Snakefile.swp
 singularity/*.simg
 *.html
+workspace/
