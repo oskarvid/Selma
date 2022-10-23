@@ -100,9 +100,6 @@ same input files as above.
 Selma is a whole genome germline variant calling workflow initially developed at the University of Bergen heavily inspired by the GATK best practices workflow. The guiding philosophy behind it is that it should be easy to setup, easy to use and that it utilizes system resources efficiently. The workflow is based on [Snakemake](https://snakemake.readthedocs.io/en/stable/) and supports [Conda](https://anaconda.org/), [Guix](https://guix.gnu.org/), [Docker](https://www.docker.com/) and (soon to be tested) [Singularity](https://singularity.lbl.gov/) execution modes.  
 Selma is named after the mythical Norwegian sea serpent that supposedly lives in [Lake Seljord](https://en.wikipedia.org/wiki/Selma_(lake_monster))
 
-
-###### This is a simplified graph portraying the key steps that the workflow goes through, [this](https://raw.githubusercontent.com/elixir-no-nels/Selma/master/.completedag.png) is a complete overview including every single step. The steps that have been left out only perform "administrative" functions and don't add to the data analysis per se.
-
 ### Tools
 [bwa](http://bio-bwa.sourceforge.net/bwa.shtml) version 0.7.17 - Maps fastq file to reference genome  
 [samtools](http://www.htslib.org/doc/samtools.html) version 1.14 - bwa pipes its output to samtools to make a bam output file  
