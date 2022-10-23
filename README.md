@@ -73,7 +73,7 @@ And now you can run `Selma` with docker!
 docker run --rm -ti -v $PWD:/data -w /data selma snakemake -j --config version=hg38 interval=/path/to/hg38/interval_list
 ```
 
-**Reference files**
+**Reference files**  
 The default reference files are the hg38 reference files from the Broad Institute, they host them at their public ftp server here:  
 ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle  
 There is no password. You can automatically download the hg38 folder with this command:  
