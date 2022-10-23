@@ -6,7 +6,7 @@ def get_fastq2(wildcards):
 
 def get_BwaRG(wc):
 	library = samples.loc[(wc.flowcell, wc.sample, wc.lane), ["library"]].unique()[0]
-	rgs = r'@RG:\tID:%(flowcell)s.%(lane)s\tSM:%(sample)s\tLB:%(library)s\tPU:%(flowcell)s.%(lane)s.%(sample)s\tPL:Illumina' \
+	rgs = r'@RG\tID:%(flowcell)s.%(lane)s\tSM:%(sample)s\tLB:%(library)s\tPU:%(flowcell)s.%(lane)s.%(sample)s\tPL:Illumina' \
 		% {'flowcell': wc.flowcell,
 			'lane': wc.lane,
 			'sample': wc.sample,
