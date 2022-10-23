@@ -8,7 +8,7 @@
 [![Travis Build Status](https://api.travis-ci.com/oskarvid/.selma.svg?branch=master)](https://travis-ci.com/oskarvid/Selma?branch=master)  
 
 #### Graphical visualization of the workflow steps
-![Graphical visualization of the pipeline steps](https://raw.githubusercontent.com/oskarvid/Selma/master/.simplifieddag.png)
+<img src=".rulegraph.svg">
 
 ## Instructions
 **Raw metal (or Guix shell environment) execution**  
