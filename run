@@ -1,0 +1,2 @@
+snakemake -j 11 --config interval=/media/disk/hg38/GRCh38.p13.genome.interval_list version=hg38 mode=cpu --use-conda -n
+

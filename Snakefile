@@ -62,18 +62,35 @@ for sequence_tuple in sequence_tuple_list[1:]:
 
 # add a final last line to "add" the unmapped contig job as well
 string += "\n"
+
+# the CONTIGS variable is only for genotypegvcfs because it doesn't have the last bed file which contains the unmapped regions
 CONTIGS = range(0, len(string.splitlines()))
+
+# the CONTIGSWUNMAPPED variable contains the unmapped regions and is used for basercalibrator and applybqsr
+CONTIGSWUNMAPPED = range(0, len(string.splitlines()) + 1)
+
+
+# Determine if the mode is CPU or GPU for NVScoreVariants
+def mode():
+	if config['mode'] == "gpu":
+		mode = "gpu"
+		return mode
+	else:
+		mode = "cpu"
+		return mode
 
 rule all:
 	input:
-		expand("Outputs/ApplyVqsrSnp/{sample}_SnpApplyVQSR.g.vcf.gz", 
-			sample=samples['sample']),
-		expand("Outputs/ApplyVqsrIndel/{sample}_IndelApplyVQSR.g.vcf.gz", 
-			sample=samples['sample']),
 		expand("Outputs/Stats/VcfPlots/{sample}_VcfPlots",
 			sample=samples['sample']),
 		expand("Outputs/Stats/BamPlots/{sample}/quals.gp",
 			sample=samples['sample']),
+		expand("Outputs/ApplyVqsrSnp/{sample}_SnpApplyVQSR.g.vcf.gz", 
+			sample=samples['sample']),
+		expand("Outputs/ApplyVqsrIndel/{sample}_IndelApplyVQSR.g.vcf.gz", 
+			sample=samples['sample']),
+#                expand("Outputs/DoppelMark/{sample}_doppelMark.bam",
+#                        sample=samples['sample']),
 
 # Split the interval list for HaplotypeCaller into sub intervals for scatter gather execution
 rule MakeIntervalLists:
@@ -107,7 +124,7 @@ rule BwaMem:
 	benchmark:
 		"Outputs/benchmarks/{sample}_{lane}_{flowcell}.bwa.tsv",
 	threads:
-		7
+		12
 	priority:
 		0
 	conda: "conda/bwa.yaml"
@@ -166,7 +183,7 @@ rule MergeBamAlignment:
 		"Outputs/benchmarks/{sample}_{lane}_{flowcell}.MergeBamAlignments.tsv",
 	conda: "conda/gatk4.yaml"
 	shell:
-		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
+		"gatk --java-options '-Xmx14G -Djava.io.tempdir=$(pwd)/tmp' \
 		MergeBamAlignment \
 		-O {output.bam} \
 		--ADD_MATE_CIGAR true \
@@ -175,7 +192,7 @@ rule MergeBamAlignment:
 		--ATTRIBUTES_TO_RETAIN X0 \
 		--ALIGNED_READS_ONLY false \
 		--EXPECTED_ORIENTATIONS FR \
-		--MAX_RECORDS_IN_RAM 200000 \
+		--MAX_RECORDS_IN_RAM 2000000 \
 		--PROGRAM_RECORD_ID 'bwamem' \
 		--ALIGNED_BAM {input.mapped} \
 		--PROGRAM_GROUP_NAME 'bwamem' \
@@ -193,13 +210,31 @@ rule MergeBamAlignment:
 checkpoint MarkDupCheckpoint:
 	input:
 		expand("Outputs/MergeBamAlignment/{sample}_{lane}_{flowcell}.merged.bam", zip,
-			sample=samples['sample'], 
+			sample=samples['sample'],
 			lane=samples['lane'],
 			flowcell=samples['flowcell']),
 	output:
 		touch("Outputs/MergeBamAlignment/placeholder"),
 	shell:
 		"echo 'Running placeholder checkpoint rule to create correct dependency for MarkDuplicates to start after MergeBamAlignment and be able to find the output files correctly'"
+
+rule DoppelMark:
+	input:
+		flag = "Outputs/MergeBamAlignment/placeholder",
+		files = lambda wcs: glob.glob('Outputs/MergeBamAlignment/%s*.bam' % wcs.sample),
+		index = lambda wcs: glob.glob('Outputs/MergeBamAlignment/%s*.bai' % wcs.sample),
+	singularity: "docker://oskarv/doppelmark"
+	output:
+		bam = "Outputs/DoppelMark/{sample}_doppelMark.bam",
+		bai = "Outputs/DoppelMark/{sample}_doppelMark.bai",
+	threads: 1
+	shell:
+		"doppelmark \
+		--bam {input.files} \
+		--index {input.index} \
+		--clip-padding 250 \
+		--output {output.bam} \
+		--parallelism {threads}"
 
 # Mark duplicates in the output files from MergeBamAlignment
 rule MarkDup:
@@ -218,7 +253,7 @@ rule MarkDup:
 		"Outputs/benchmarks/{sample}.MarkDup.tsv",
 	conda: "conda/gatk4.yaml"
 	shell:
-		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
+		"gatk --java-options '-Xmx14G -Djava.io.tempdir=$(pwd)/tmp' \
 		MarkDuplicates \
 		-O {output.bam} \
 		--CREATE_INDEX true \
@@ -237,7 +272,7 @@ rule MakeSequenceGroupings:
 	priority:
 		30
 	shell:
-		"python2 scripts/split-bedfile.py {input} Outputs/MakeContigBeds/"
+		"python scripts/split-bedfile.py {input} Outputs/MakeContigBeds/"
 
 # Run checkpoint so that glob() in BaseRecalibrator finds the input files
 checkpoint BaseRecalibratorCheckpoint:
@@ -256,6 +291,7 @@ rule BaseRecalibrator:
 		mills = config[refversion]['mills'],
 		v1000g = config[refversion]['v1000g'],
 		flag = "Outputs/MakeContigBeds/placeholder",
+#                bam = "Outputs/DoppelMark/{sample}_doppelMark.bam",
 		bam = "Outputs/MarkDuplicates/{sample}_markedDuplicates.bam",
 		bai = "Outputs/MarkDuplicates/{sample}_markedDuplicates.bai",
 		contigs = lambda wcs: glob.glob('Outputs/MakeContigBeds/contigs_%s.bed' % wcs.contigs),
@@ -267,7 +303,7 @@ rule BaseRecalibrator:
 		"Outputs/benchmarks/{sample}_{contigs}.BaseRecalibrator.tsv",
 	conda: "conda/gatk4.yaml"
 	shell:
-		"gatk --java-options '-Xmx3500M -Djava.io.tempdir=$(pwd)/tmp' \
+		"gatk --java-options '-Xmx1330M -Djava.io.tempdir=$(pwd)/tmp' \
 		BaseRecalibrator \
 		-O {output.grp} \
 		--input {input.bam} \
@@ -282,7 +318,7 @@ rule BaseRecalibrator:
 rule GatherBQSRReports:
 	input:
 		expand("Outputs/BaseRecalibrator/{{sample}}_BQSR_{directory}.grp",
-			directory=CONTIGS),
+			directory=CONTIGSWUNMAPPED),
 	output:
 		"Outputs/GatherBQSR/{sample}_GatheredBQSR.grp"
 	conda: "conda/gatk4.yaml"
@@ -308,7 +344,7 @@ rule ApplyBQSR:
 		"Outputs/benchmarks/{sample}_{con}.ApplyBQSR.tsv",
 	conda: "conda/gatk4.yaml"
 	shell:
-		"gatk --java-options '-Xmx3500M -Djava.io.tempdir=$(pwd)/tmp' \
+		"gatk --java-options '-Xmx1330M -Djava.io.tempdir=$(pwd)/tmp' \
 		ApplyBQSR \
 		-O {output.bam} \
 		-bqsr {input.grp} \
@@ -322,9 +358,9 @@ rule ApplyBQSR:
 rule GatherApplyBQSRbams:
 	input:
 		bai = expand("Outputs/ApplyBQSR/{{sample}}_{contigs}_recalibrated.bai",
-			contigs=CONTIGS),
+			contigs=CONTIGSWUNMAPPED),
 		bam = expand("Outputs/ApplyBQSR/{{sample}}_{contigs}_recalibrated.bam",
-			contigs=CONTIGS),
+			contigs=CONTIGSWUNMAPPED),
 	output:
 		bam = "Outputs/GatherBamFiles/{sample}_GatheredABQSRFiles.bam",
 		bai = "Outputs/GatherBamFiles/{sample}_GatheredABQSRFiles.bai",
@@ -389,10 +425,10 @@ rule HaplotypeCaller:
 	benchmark:
 		"Outputs/benchmarks/{sample}_{split}.HaplotypeCaller.tsv",
 	threads:
-		2
+		1
 	conda: "conda/gatk4.yaml"
 	shell:
-		"gatk --java-options '-Xmx3500M -Djava.io.tempdir=$(pwd)/tmp' \
+		"gatk --java-options '-Xmx1100M -Djava.io.tempdir=$(pwd)/tmp' \
 		HaplotypeCaller \
 		-ERC GVCF \
 		-I {input.bam} \
@@ -428,7 +464,7 @@ rule IndexGatheredHTCVCFs:
 		"Outputs/GatherHTCVCFs/{sample}_GatheredHTCVCFs.g.vcf.gz.tbi",
 	conda: "conda/gatk4.yaml"
 	shell:
-		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
+		"gatk --java-options '-Xmx14G -Djava.io.tempdir=$(pwd)/tmp' \
 		IndexFeatureFile \
 		-I {input} \
 		-O {output}"
@@ -448,7 +484,7 @@ rule GenotypeGVCFs:
 		"Outputs/benchmarks/{sample}_{con}.GenotypeGVCFs.tsv",
 	conda: "conda/gatk4.yaml"
 	shell:
-		"gatk --java-options '-Xmx3500M -Djava.io.tempdir=$(pwd)/tmp' \
+		"gatk --java-options '-Xmx1330M -Djava.io.tempdir=$(pwd)/tmp' \
 		GenotypeGVCFs \
 		-V {input.vcf} \
 		-O {output.vcf} \
@@ -485,7 +521,7 @@ rule IndexGatheredGVCFs:
 		"Outputs/benchmarks/{sample}.IndexGatheredGenotypeGVCFs.tsv",
 	conda: "conda/gatk4.yaml"
 	shell:
-		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
+		"gatk --java-options '-Xmx14G -Djava.io.tempdir=$(pwd)/tmp' \
 		IndexFeatureFile \
 		-I {input} \
 		-O {output}"
@@ -495,7 +531,7 @@ rule VcfStats:
 		vcf = "Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz",
 		tbi = "Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz.tbi"
 	output:
-		vcf = "Outputs/Stats/VcfPlots/{sample}/BcftoolsStats",
+		"Outputs/Stats/VcfPlots/{sample}/BcftoolsStats",
 	benchmark:
 		"Outputs/benchmarks/{sample}.BcftoolsStats.tsv",
 	threads:
@@ -505,7 +541,7 @@ rule VcfStats:
 	shell:
 		"bcftools stats \
 		--threads {threads} \
-		{input.vcf} > {output.vcf}"
+		{input.vcf} > {output}"
 
 rule VcfPlot:
 	input:
@@ -514,6 +550,76 @@ rule VcfPlot:
 		directory("Outputs/Stats/VcfPlots/{sample}_VcfPlots")
 	benchmark:
 		"Outputs/benchmarks/{sample}.VcfPlot.tsv",
+	priority: 1
+	conda: "conda/bcftools.yaml"
+	shell:
+		"plot-vcfstats \
+		-p {output} \
+		{input} || true"
+
+rule NVScoreVariants:
+	input:
+		vcf = "Outputs/GatherGenotypeGVCFs/{sample}_GatheredGVCFs.g.vcf.gz",
+		bam = "Outputs/GatherBamFiles/{sample}_GatheredABQSRFiles.bam",
+		bai = "Outputs/GatherBamFiles/{sample}_GatheredABQSRFiles.bai",
+		fasta = config[refversion]['fasta'],
+		model = "NVScoreVariants_models/",
+	output:
+		vcf = "Outputs/NVScoreVariants/{sample}_NVScoreVariants.vcf"
+	params:
+		mode = mode()
+#		mode = config['mode'],
+	conda: "conda/nvscorevariants_environment.yml"
+	shell:
+		"""
+		if [[ {params.mode} == "gpu" ]]; then
+			python3 scripts/nvscorevariants.py \
+			--output-file {output.vcf} \
+			--vcf-file {input.vcf} \
+			--ref-file {input.fasta} \
+			--tensor-type read_tensor \
+			--batch-size 16 \
+			--seed 724 \
+			--tmp-file /tmp/nvscoretemp.txt \
+			--model-directory {input.model} \
+			--input-file {input.bam} \
+			--gpus 0 
+		else
+			java -jar ../gatk-package-NVSCOREVARIANTS-PREVIEW-SNAPSHOT-local.jar NVScoreVariants \
+			-V {input.vcf} \
+			-R {input.fasta} \
+			--tensor-type read_tensor \
+	                -I {input.bam} \
+		        --batch-size 16 \
+			-O {output}
+		fi
+		"""
+
+#		else:
+
+rule VcfStats2:
+	input:
+		vcf = "Outputs/NVScoreVariants/{sample}_NVScoreVariants.vcf",
+	output:
+		"Outputs/Stats/VcfPlots/{sample}/BcftoolsStats-NVScore",
+#	benchmark:
+#		"Outputs/benchmarks/{sample}.BcftoolsStats.tsv",
+	threads:
+		8
+	priority: 1
+	conda: "conda/bcftools.yaml"
+	shell:
+		"bcftools stats \
+		--threads {threads} \
+		{input.vcf} > {output}"
+
+rule VcfPlot2:
+	input:
+		"Outputs/Stats/VcfPlots/{sample}/BcftoolsStats-NVScore",
+	output:
+		directory("Outputs/Stats/VcfPlots/{sample}_VcfPlots-NVScore")
+#	benchmark:
+#		"Outputs/benchmarks/{sample}.VcfPlot.tsv",
 	priority: 1
 	conda: "conda/bcftools.yaml"
 	shell:
@@ -542,20 +648,20 @@ rule VariantRecalibratorSNP:
 		"Outputs/benchmarks/{sample}.VariantRecalibratorSNP.tsv",
 	conda: "conda/gatk4.yaml"
 	shell:
-		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
+		"gatk --java-options '-Xmx7G -Djava.io.tempdir=$(pwd)/tmp' \
 		VariantRecalibrator \
 		--mode SNP \
 		-V {input.vcf} \
 		-R {input.fasta} \
-		--max-gaussians 4 \
+		--max-gaussians 6 \
 		--output {output.recal} \
-		-tranche 97.0 -tranche 90.0 \
 		--tranches-file {output.tranches} \
 		-an QD -an MQ -an DP -an MQRankSum -an ReadPosRankSum -an FS -an SOR \
-		-tranche 99.5 -tranche 99.4 -tranche 99.3 -tranche 99.0 -tranche 98.0 \
 		-tranche 100.0 -tranche 99.95 -tranche 99.9 -tranche 99.8 -tranche 99.6 \
+		-tranche 99.5 -tranche 99.4 -tranche 99.3 -tranche 99.0 -tranche 98.0 \
+		-tranche 97.0 -tranche 90.0 \
 		--resource:omni,known=false,training=true,truth=true,prior=12.0 {input.omni} \
-		--resource:dbsnp,known=true,training=false,truth=false,prior=2.0 {input.dbsnp} \
+		--resource:dbsnp,known=true,training=false,truth=false,prior=7.0 {input.dbsnp} \
 		--resource:hapmap,known=false,training=true,truth=true,prior=15.0 {input.hapmap} \
 		--resource:v1000G,known=false,training=true,truth=false,prior=10.0 {input.v1000g} \
 		--tmp-dir Outputs/VariantRecalibratorSNP"
@@ -579,7 +685,7 @@ rule VariantRecalibratorINDEL:
 		"Outputs/benchmarks/{sample}.VariantRecalibratorINDEL.tsv",
 	conda: "conda/gatk4.yaml"
 	shell:
-		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
+		"gatk --java-options '-Xmx7G -Djava.io.tempdir=$(pwd)/tmp' \
 		VariantRecalibrator \
 		--mode INDEL \
 		-V {input.vcf} \
@@ -609,13 +715,13 @@ rule ApplyVqsrSnp:
 		"Outputs/benchmarks/{sample}.ApplyVqsrSnp.tsv",
 	conda: "conda/gatk4.yaml"
 	shell:
-		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
+		"gatk --java-options '-Xmx7G -Djava.io.tempdir=$(pwd)/tmp' \
 		ApplyVQSR \
 		--mode SNP \
 		-V {input.vcf} \
 		-O {output.vcf} \
 		-R {input.fasta} \
-		-ts-filter-level 99.6 \
+		-ts-filter-level 99.7 \
 		-recal-file {input.recal} \
 		-tranches-file {input.tranches} \
 		--tmp-dir Outputs/ApplyVqsrSnp"
@@ -635,13 +741,13 @@ rule ApplyVqsrIndel:
 		"Outputs/benchmarks/{sample}.ApplyVqsrIndel.tsv",
 	conda: "conda/gatk4.yaml"
 	shell:
-		"gatk --java-options -Djava.io.tempdir=$(pwd)/tmp \
+		"gatk --java-options '-Xmx7G -Djava.io.tempdir=$(pwd)/tmp' \
 		ApplyVQSR \
 		--mode INDEL \
 		-V {input.vcf} \
 		-O {output.vcf} \
 		-R {input.fasta} \
-		-ts-filter-level 95.0 \
+		-ts-filter-level 99.7 \
 		-recal-file {input.recal} \
 		-tranches-file {input.tranches} \
 		--tmp-dir Outputs/ApplyVqsrIndel"

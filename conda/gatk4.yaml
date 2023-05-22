@@ -1,5 +1,6 @@
 channels:
   - bioconda
+  - conda-forge
 dependencies:
-  - gatk4
-  - bwa
+  - gatk4=4.4.0.0
+  - openjdk=17.0.5.8
